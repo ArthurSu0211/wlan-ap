@@ -553,7 +553,7 @@ static void ubus_collector_bss_cb(struct ubus_request *req, int type,
 	struct blob_attr *tb_bss_table[__BSS_TABLE_MAX] = {};
 	struct blob_attr *tb_bss_tbl = NULL;
 	char *bss_name = NULL;
-	dpp_event_report_data_t *bss_list = NULL;
+	ds_dlist_t *bss_list = NULL;
 	delete_entry_t *bss_record = NULL;
 	ds_dlist_iter_t record_iter;
 
@@ -571,8 +571,8 @@ static void ubus_collector_bss_cb(struct ubus_request *req, int type,
 		return;
 	}
 
-	bss_list = calloc(1, sizeof(dpp_event_report_data_t));
-	ds_dlist_init(&bss_list->list, delete_entry_t, node);
+	bss_list = calloc(1, sizeof(ds_dlist_t));
+	ds_dlist_init(bss_list, delete_entry_t, node);
 
 	/* itereate bss list */
 	blobmsg_for_each_attr(tb_bss_tbl, tb_bss_lst[BSS_LIST_BSS_LIST], rem)
@@ -598,17 +598,17 @@ static void ubus_collector_bss_cb(struct ubus_request *req, int type,
 		bss_record = malloc(sizeof(delete_entry_t));
 		bss_record->bss = bss_name;
 
-		ds_dlist_insert_tail(&bss_list->list, bss_record);
+		ds_dlist_insert_tail(bss_list, bss_record);
 	}
 
-	if (ds_dlist_is_empty(&bss_list->list)) {
+	if (ds_dlist_is_empty(bss_list)) {
 		LOG(INFO, "ubus_collector: no bss entries found");
 		free(bss_list);
 		return;
 	}
 
 	/* get sessions from current bss */
-	for (bss_record = ds_dlist_ifirst(&record_iter, &bss_list->list);
+	for (bss_record = ds_dlist_ifirst(&record_iter, bss_list);
 	     bss_record != NULL; bss_record = ds_dlist_inext(&record_iter)) {
 		LOG(INFO, "ubus_collector: processing bss %s", bss_record->bss);
 		ubus_collector_hostapd_invoke(bss_record->bss);
@@ -616,8 +616,6 @@ static void ubus_collector_bss_cb(struct ubus_request *req, int type,
 		free(bss_record);
 	}
 	
-	// lkudra: here invoke ubus_collector for osync-dhcp
-
 	LOG(INFO, "ubus_collector: scanned all bss objects");
 	free(bss_list);
 
