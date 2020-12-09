@@ -7,7 +7,7 @@
 dpp_event_report_data_t g_report_data;
 
 /* Internal list of processed events ready to be deleted from hostapd */
-static dpp_event_report_data_t *deletion_pending = NULL;
+static ds_dlist_t *deletion_pending_list = NULL;
 static struct ubus_context *ubus = NULL;
 static char *ubus_object = NULL;
 
@@ -385,7 +385,7 @@ static void ubus_collector_cb(struct ubus_request *req, int type,
 	struct blob_attr *tb_sessions[__UBUS_SESSIONS_MAX] = {};
 	struct blob_attr *tb_session = NULL;
 	struct blob_attr *tb_client_events[__CLIENT_EVENTS_MAX] = {};
-	dpp_event_record_t *dpp_client_session = NULL;
+	dpp_event_record_t *event_record = NULL;
 	dpp_event_record_session_t *dpp_session = NULL;
 	uint64_t session_id = 0;
 	int session_no = 0;
@@ -409,14 +409,14 @@ static void ubus_collector_cb(struct ubus_request *req, int type,
 		goto error_out;
 	}
 
-	dpp_client_session = calloc(1, sizeof(dpp_event_record_t));
-	if (!dpp_client_session) {
+	event_record = calloc(1, sizeof(dpp_event_record_t));
+	if (!event_record) {
 		LOG(INFO,
-		    "ubus_collector: not enough memory for dpp_client_session");
+		    "ubus_collector: not enough memory for event_record");
 		goto error_out;
 	}
 
-	ds_dlist_init(&dpp_client_session->client_session,
+	ds_dlist_init(&event_record->client_session,
 		      dpp_event_record_session_t, node);
 
 	/* Iterating on multiple ClientSession types */
@@ -485,7 +485,7 @@ static void ubus_collector_cb(struct ubus_request *req, int type,
 			}
 		}
 
-		ds_dlist_insert_tail(&dpp_client_session->client_session,
+		ds_dlist_insert_tail(&event_record->client_session,
 				     dpp_session);
 		dpp_session = NULL;
 
@@ -494,19 +494,19 @@ static void ubus_collector_cb(struct ubus_request *req, int type,
 		delete_entry->session_id = session_id;
 		delete_entry->bss = strdup(bss);
 
-		ds_dlist_insert_tail(&deletion_pending->list, delete_entry);
+		ds_dlist_insert_tail(deletion_pending_list, delete_entry);
 		delete_entry = NULL;
 	}
 
 	/* Move all the sessions received from hostapd to global list accessible from sm_events */
 	if (session_no)
-		ds_dlist_insert_tail(&g_report_data.list, dpp_client_session);
+		ds_dlist_insert_tail(&g_report_data.list, event_record);
 
 	goto out;
 
 error_out:
 	free(dpp_session);
-	free(dpp_client_session);
+	free(event_record);
 	return;
 
 out:
@@ -615,6 +615,8 @@ static void ubus_collector_bss_cb(struct ubus_request *req, int type,
 
 		free(bss_record);
 	}
+	
+	// lkudra: here invoke ubus_collector for osync-dhcp
 
 	LOG(INFO, "ubus_collector: scanned all bss objects");
 	free(bss_list);
@@ -684,7 +686,7 @@ static void ubus_garbage_collector(void *arg)
 {
 	delete_entry_t *delete_entry = NULL;
 
-	if (ds_dlist_is_empty(&deletion_pending->list)) {
+	if (ds_dlist_is_empty(deletion_pending_list)) {
 		evsched_task_reschedule();
 		return;
 	}
@@ -692,13 +694,13 @@ static void ubus_garbage_collector(void *arg)
 	/* Remove a single session from the deletion list */
 	LOG(INFO, "ubus_collector: garbage collection");
 
-	delete_entry = ds_dlist_head(&deletion_pending->list);
+	delete_entry = ds_dlist_head(deletion_pending_list);
 	if (delete_entry) {
 		if (delete_entry->session_id)
 			ubus_collector_hostapd_clear(delete_entry->session_id,
 						     delete_entry->bss);
 
-		ds_dlist_remove_head(&deletion_pending->list);
+		ds_dlist_remove_head(deletion_pending_list);
 		free(delete_entry->bss);
 		free(delete_entry);
 	}
@@ -719,10 +721,10 @@ int ubus_collector_init(void)
 	}
 
 	/* Initialize the global events and event deletion lists */
-	ds_dlist_init(&g_report_data.list, dpp_event_record_session_t, node);
+	ds_dlist_init(&g_report_data.list, dpp_event_record_t, node);
 
-	deletion_pending = calloc(1, sizeof(dpp_event_record_session_t));
-	ds_dlist_init(&deletion_pending->list, delete_entry_t, node);
+	deletion_pending_list = calloc(1, sizeof(ds_dlist_t));
+	ds_dlist_init(deletion_pending_list, delete_entry_t, node);
 
 	/* Schedule an event: invoke hostapd ubus get bss list method  */
 	sched_status = evsched_task(&ubus_collector_hostapd_bss_invoke, NULL,
@@ -749,6 +751,6 @@ void ubus_collector_cleanup(void)
 {
 	LOG(INFO, "ubus_collector: cleaning up ubus collector");
 	ubus_free(ubus);
-	free(deletion_pending);
+	free(deletion_pending_list);
 	free(ubus_object);
 }
