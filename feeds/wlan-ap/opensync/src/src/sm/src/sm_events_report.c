@@ -23,7 +23,7 @@
 #define MODULE_ID LOG_MODULE_ID_MAIN
 
 /* global list populated by ubus_collector */
-extern dpp_event_report_data_t g_report_data;
+extern dpp_event_report_data_t g_event_report;
 
 /* new part */
 typedef struct {
@@ -94,16 +94,35 @@ static void sm_events_report(EV_P_ ev_timer *w, int revents)
 	dpp_event_report_data_t *report_ctx = &events_ctx->report;
 	ev_timer *report_timer = &events_ctx->report_timer;
 
+	/* Event Record */
+	dpp_event_record_t *dpp_record = NULL;
+	dpp_event_record_t *sm_record = NULL;
+	ds_dlist_iter_t record_iter;
+
 	dpp_events_report_timer_restart(report_timer);
 
-	memcpy(report_ctx, &g_report_data, sizeof(dpp_event_report_data_t));
 
-	while (!ds_dlist_is_empty(&g_report_data.list)) {
-		ds_dlist_remove_head(&g_report_data.list);
+	for (sm_record = ds_dlist_ifirst(&record_iter, &g_event_report.client_event_list); sm_record != NULL; sm_record = ds_dlist_inext(&record_iter)) {
+		dpp_record = dpp_event_record_alloc();
+		dpp_record->client_session.session_id = sm_record->client_session.session_id;
+		dpp_record->client_session.auth_event =  sm_record->client_session.auth_event;
+		dpp_record->client_session.assoc_event =  sm_record->client_session.assoc_event;
+		dpp_record->client_session.first_data_event =  sm_record->client_session.first_data_event;
+		dpp_record->client_session.disconnect_event =  sm_record->client_session.disconnect_event;
+		dpp_record->client_session.auth_event =  sm_record->client_session.auth_event;
+
+		/* Memset all event pointers in the global event record to NULL */
+		memset(&sm_record->client_session, 0, sizeof(dpp_event_record_session_t));
+		sm_record->hasSMProcessed = true;
+
+		if (ds_dlist_is_empty(&report_ctx->client_event_list)) {
+			ds_dlist_init(&report_ctx->client_event_list, dpp_event_record_t, node);
+		}
+		ds_dlist_insert_tail(&report_ctx->client_event_list, dpp_record);
 	}
 
 	LOG(INFO, "Sending events report...");
-	if (!ds_dlist_is_empty(&report_ctx->list)) {
+	if (!ds_dlist_is_empty(&report_ctx->client_event_list)) {
 		dpp_put_events(report_ctx);
 	}
 }
@@ -136,11 +155,10 @@ bool sm_events_report_request(radio_entry_t *radio_cfg,
 		LOG(INFO, "Initializing events reporting");
 
 		/* Initialize report list */
-		ds_dlist_init(&report_ctx->list, dpp_event_record_t, node);
+		ds_dlist_init(&report_ctx->client_event_list, dpp_event_record_t, node);
 
 		/* Initialize event list */
-		ds_dlist_init(&events_ctx->record_list, dpp_event_record_t,
-			      node);
+		ds_dlist_init(&events_ctx->record_list, dpp_event_record_t, node);
 
 		/* Initialize event lib timers and pass the global
 			internal cache
