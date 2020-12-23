@@ -233,27 +233,56 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /* free allocated memory for single stat */
-@@ -249,418 +243,499 @@ static void dppline_free_stat(dppline_st
+@@ -249,7 +243,41 @@ static void dppline_free_stat(dppline_st
                  break;
              case DPP_T_UCC:
                  free(&s->u.ucc.record);
 -                break;
--            default:;
--        }
 +                break;	
 +            case DPP_T_EVENTS:
-+			if(s->u.events.client_event_list->assoc_event)
-+				free(s->u.events.client_event_list->assoc_event);
++		 for (i=0; i<s->u.events.client_event_qty; i++)
++		 {
++			LOG(ERR,"deallocating memory : session id : %lld",s->u.events.client_event_list[i].session_id );
++			if(s->u.events.client_event_list[i].assoc_event)
++				free(s->u.events.client_event_list[i].assoc_event);
++
++			if(s->u.events.client_event_list[i].auth_event)
++				free(s->u.events.client_event_list[i].auth_event);
++
++			if(s->u.events.client_event_list[i].disconnect_event)
++				free(s->u.events.client_event_list[i].disconnect_event);
++
++			if(s->u.events.client_event_list[i].connect_event)
++				free(s->u.events.client_event_list[i].connect_event);
++
++			if(s->u.events.client_event_list[i].failure_event)
++				free(s->u.events.client_event_list[i].failure_event);
++
++			if(s->u.events.client_event_list[i].first_data_event)
++				free(s->u.events.client_event_list[i].first_data_event);
++
++			if(s->u.events.client_event_list[i].id_event)
++				free(s->u.events.client_event_list[i].id_event);
++
++			if(s->u.events.client_event_list[i].ip_event)
++				free(s->u.events.client_event_list[i].ip_event);
++
++			if(s->u.events.client_event_list[i].timeout_event)
++				free(s->u.events.client_event_list[i].timeout_event);
++		}
++			free(s->u.events.client_event_list);
++		break;
++
+             default:;
+         }
  
--        free(s);
--    }
--}
-+			if(s->u.events.client_event_list->auth_event)
-+				free(s->u.events.client_event_list->auth_event);
+@@ -258,409 +286,461 @@ static void dppline_free_stat(dppline_st
+ }
  
--/* copy stats to internal buffer */
+ /* copy stats to internal buffer */
 -static bool dppline_copysts(dppline_stats_t * dst, void * sts)
--{
++static bool dppline_copysts(dppline_stats_t *dst, void *sts)
+ {
 -    int size = 0;
 -    switch(dst->type)
 -    {
@@ -262,9 +291,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                dpp_survey_report_data_t   *report_data = sts;
 -                dpp_survey_record_t        *result_entry = NULL;
 -                ds_dlist_iter_t             result_iter;
-+			if(s->u.events.client_event_list->disconnect_event)
-+				free(s->u.events.client_event_list->disconnect_event);
- 
+-
 -                /* Loop through linked list of results and copy them to dppline buffer */
 -                dst->u.survey.qty = 0;
 -                dst->u.survey.radio_type = report_data->radio_type;
@@ -317,9 +344,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                dpp_capacity_record_list_t *result = NULL;
 -                dpp_capacity_record_t      *result_entry = NULL;
 -                ds_dlist_iter_t             result_iter;
-+			if(s->u.events.client_event_list->connect_event)
-+				free(s->u.events.client_event_list->connect_event);
- 
+-
 -                /* Loop through linked list of results and copy them to dppline buffer */
 -                dst->u.capacity.qty = 0;
 -                dst->u.capacity.radio_type = report_data->radio_type;
@@ -329,9 +354,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                        result = ds_dlist_inext(&result_iter))
 -                {
 -                    result_entry = &result->entry;
-+			if(s->u.events.client_event_list->failure_event)
-+				free(s->u.events.client_event_list->failure_event);
- 
+-
 -                    size = (dst->u.capacity.qty + 1) * sizeof(dpp_capacity_record_t);
 -                    if (!dst->u.capacity.qty) {
 -                        dst->u.capacity.list = calloc(1, size);
@@ -348,18 +371,14 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                }
 -            }
 -            break;
-+			if(s->u.events.client_event_list->first_data_event)
-+				free(s->u.events.client_event_list->first_data_event);
- 
+-
 -        case DPP_T_NEIGHBOR:
 -            {
 -                dpp_neighbor_report_data_t *report_data = sts;
 -                dpp_neighbor_record_list_t *result = NULL;
 -                dpp_neighbor_record_t      *result_entry = NULL;
 -                ds_dlist_iter_t             result_iter;
-+			if(s->u.events.client_event_list->id_event)
-+				free(s->u.events.client_event_list->id_event);
- 
+-
 -                /* Loop through linked list of results and copy them to dppline buffer */
 -                dst->u.neighbor.qty = 0;
 -                dst->u.neighbor.radio_type = report_data->radio_type;
@@ -371,9 +390,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                        result = ds_dlist_inext(&result_iter))
 -                {
 -                    result_entry = &result->entry;
-+			if(s->u.events.client_event_list->ip_event)
-+				free(s->u.events.client_event_list->ip_event);
- 
+-
 -                    size = (dst->u.neighbor.qty + 1) * sizeof(dpp_neighbor_record_t);
 -                    if (!dst->u.neighbor.qty) {
 -                        dst->u.neighbor.list = calloc(1, size);
@@ -390,9 +407,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                }
 -            }
 -            break;
-+			if(s->u.events.client_event_list->timeout_event)
-+				free(s->u.events.client_event_list->timeout_event);
- 
+-
 -        case DPP_T_CLIENT:
 -            {
 -                dpp_client_report_data_t       *report_data = sts;
@@ -407,9 +422,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                ds_dlist_iter_t                 tid_iter;
 -                dpp_client_connection_events_t *events = NULL;
 -                ds_dlist_iter_t                 events_iter;
-+			free(s->u.events.client_event_list);
-+		break;
- 
+-
 -                /* Loop through linked list of results and copy them to dppline buffer */
 -                dst->u.client.qty = 0;
 -                dst->u.client.radio_type = report_data->radio_type;
@@ -619,61 +632,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -
 -                dpp_rssi_raw_t                 *raw = NULL;
 -                ds_dlist_iter_t                 raw_iter;
--
--                /* Loop through linked list of results and copy them to dppline buffer */
--                dst->u.rssi.qty = 0;
--                dst->u.rssi.radio_type = report_data->radio_type;
--                dst->u.rssi.report_type = report_data->report_type;
--                dst->u.rssi.timestamp_ms = report_data->timestamp_ms;
--                for (   result_entry = ds_dlist_ifirst(&result_iter, &report_data->list);
--                        result_entry != NULL;
--                        result_entry = ds_dlist_inext(&result_iter))
--                {
--                    size = (dst->u.rssi.qty + 1) * sizeof(dppline_rssi_rec_t);
--                    if (!dst->u.rssi.qty) {
--                        dst->u.rssi.list = calloc(1, size);
--                    }
--                    else {
--                        dst->u.rssi.list = realloc(dst->u.rssi.list, size);
--                        memset(&dst->u.rssi.list[dst->u.rssi.qty],
--                               0,
--                               sizeof(dppline_rssi_rec_t));
--                    }
--                    memcpy(&dst->u.rssi.list[dst->u.rssi.qty].rec,
--                            result_entry,
--                            sizeof(dpp_rssi_record_t));
-+            default:;
-+        }
- 
--                    if (REPORT_TYPE_RAW == report_data->report_type) {
--                        for (   raw = ds_dlist_ifirst(&raw_iter, &result_entry->rssi.raw);
--                                raw != NULL;
--                                raw = ds_dlist_inext(&raw_iter))
--                        {
--                            size = (dst->u.rssi.list[dst->u.rssi.qty].raw_qty + 1) * sizeof(dpp_rssi_raw_t);
--                            if (!dst->u.rssi.list[dst->u.rssi.qty].raw_qty) {
--                                dst->u.rssi.list[dst->u.rssi.qty].raw = calloc(1, size);
--                            }
--                            else {
--                                dst->u.rssi.list[dst->u.rssi.qty].raw =
--                                    realloc(dst->u.rssi.list[dst->u.rssi.qty].raw, size);
--                                memset(&dst->u.rssi.list[dst->u.rssi.qty].raw[dst->u.rssi.list[dst->u.rssi.qty].raw_qty],
--                                        0,
--                                        sizeof(dpp_rssi_raw_t));
--                            }
--                            memcpy(&dst->u.rssi.list[dst->u.rssi.qty].raw[dst->u.rssi.list[dst->u.rssi.qty].raw_qty],
--                                    raw,
--                                    sizeof(dpp_rssi_raw_t));
-+        free(s);
-+    }
-+}
- 
--                            dst->u.rssi.list[dst->u.rssi.qty].raw_qty++;
--                        }
--                    }
-+/* copy stats to internal buffer */
-+static bool dppline_copysts(dppline_stats_t *dst, void *sts)
-+{
 +	int size = 0;
 +	switch (dst->type) {
 +	case DPP_T_SURVEY: {
@@ -1030,6 +988,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		{
 +			dst->u.events.client_event_qty++;
 +		}
++		LOG(ERR,"Number of client events received : %d ", dst->u.events.client_event_qty);
 +		size = dst->u.events.client_event_qty * sizeof(dpp_event_record_session_t);
 +		dst->u.events.client_event_list = calloc(1, size);
 +		int count = 0;
@@ -1040,6 +999,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +			       sizeof(dpp_event_record_session_t));
 +			count++;
 +		}
++
 +
 +	} break;
 +
@@ -1125,6 +1085,53 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		}
 +	} break;
  
+-                /* Loop through linked list of results and copy them to dppline buffer */
+-                dst->u.rssi.qty = 0;
+-                dst->u.rssi.radio_type = report_data->radio_type;
+-                dst->u.rssi.report_type = report_data->report_type;
+-                dst->u.rssi.timestamp_ms = report_data->timestamp_ms;
+-                for (   result_entry = ds_dlist_ifirst(&result_iter, &report_data->list);
+-                        result_entry != NULL;
+-                        result_entry = ds_dlist_inext(&result_iter))
+-                {
+-                    size = (dst->u.rssi.qty + 1) * sizeof(dppline_rssi_rec_t);
+-                    if (!dst->u.rssi.qty) {
+-                        dst->u.rssi.list = calloc(1, size);
+-                    }
+-                    else {
+-                        dst->u.rssi.list = realloc(dst->u.rssi.list, size);
+-                        memset(&dst->u.rssi.list[dst->u.rssi.qty],
+-                               0,
+-                               sizeof(dppline_rssi_rec_t));
+-                    }
+-                    memcpy(&dst->u.rssi.list[dst->u.rssi.qty].rec,
+-                            result_entry,
+-                            sizeof(dpp_rssi_record_t));
+-
+-                    if (REPORT_TYPE_RAW == report_data->report_type) {
+-                        for (   raw = ds_dlist_ifirst(&raw_iter, &result_entry->rssi.raw);
+-                                raw != NULL;
+-                                raw = ds_dlist_inext(&raw_iter))
+-                        {
+-                            size = (dst->u.rssi.list[dst->u.rssi.qty].raw_qty + 1) * sizeof(dpp_rssi_raw_t);
+-                            if (!dst->u.rssi.list[dst->u.rssi.qty].raw_qty) {
+-                                dst->u.rssi.list[dst->u.rssi.qty].raw = calloc(1, size);
+-                            }
+-                            else {
+-                                dst->u.rssi.list[dst->u.rssi.qty].raw =
+-                                    realloc(dst->u.rssi.list[dst->u.rssi.qty].raw, size);
+-                                memset(&dst->u.rssi.list[dst->u.rssi.qty].raw[dst->u.rssi.list[dst->u.rssi.qty].raw_qty],
+-                                        0,
+-                                        sizeof(dpp_rssi_raw_t));
+-                            }
+-                            memcpy(&dst->u.rssi.list[dst->u.rssi.qty].raw[dst->u.rssi.list[dst->u.rssi.qty].raw_qty],
+-                                    raw,
+-                                    sizeof(dpp_rssi_raw_t));
+-
+-                            dst->u.rssi.list[dst->u.rssi.qty].raw_qty++;
+-                        }
+-                    }
+-
 -                    dst->u.rssi.qty++;
 -                }
 -            }
@@ -1132,7 +1139,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
          case DPP_T_NETWORK_PROBE:
             {
                  dpp_network_probe_report_data_t *report_data = sts;
-@@ -698,945 +773,1006 @@ static bool dppline_copysts(dppline_stat
+@@ -698,945 +778,1006 @@ static bool dppline_copysts(dppline_stat
  
             }
             break;
@@ -1222,15 +1229,15 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -            return STS__RADIO_BAND_TYPE__BAND5G;
 +	case AT_REASSOC:
 +		return STS__ASSOC_TYPE__REASSOC;
-+
+ 
+-        case RADIO_TYPE_5GL:
+-            return STS__RADIO_BAND_TYPE__BAND5GL;
 +	default:
 +		assert(0);
 +	}
 +	return 0;
 +}
- 
--        case RADIO_TYPE_5GL:
--            return STS__RADIO_BAND_TYPE__BAND5GL;
++
 +Sts__DeviceType dppline_to_proto_device_type(device_type_t device_type)
 +{
 +	switch (device_type) {
@@ -1369,33 +1376,27 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +	}
 +	return 0;
 +}
-+
+ 
+-    // increase the number of surveys
+-    r->n_survey++;
 +Sts__SurveyType dppline_to_proto_survey_type(radio_scan_type_t scan_type)
 +{
 +	switch (scan_type) {
 +	case RADIO_SCAN_TYPE_ONCHAN:
 +		return STS__SURVEY_TYPE__ON_CHANNEL;
  
--    // increase the number of surveys
--    r->n_survey++;
-+	case RADIO_SCAN_TYPE_OFFCHAN:
-+		return STS__SURVEY_TYPE__OFF_CHANNEL;
- 
 -    // allocate or extend the size of surveys
 -    r->survey = realloc(r->survey,
 -            r->n_survey * sizeof(Sts__Survey*));
-+	case RADIO_SCAN_TYPE_FULL:
-+		return STS__SURVEY_TYPE__FULL;
++	case RADIO_SCAN_TYPE_OFFCHAN:
++		return STS__SURVEY_TYPE__OFF_CHANNEL;
  
 -    // allocate new buffer Sts__Survey
 -    sr = malloc(sizeof(Sts__Survey));
 -    assert(sr);
 -    r->survey[r->n_survey - 1] = sr;
-+	default:
-+		assert(0);
-+	}
-+	return 0;
-+}
++	case RADIO_SCAN_TYPE_FULL:
++		return STS__SURVEY_TYPE__FULL;
  
 -    sts__survey__init(sr);
 -    sr->band = dppline_to_proto_radio(survey->radio_type);
@@ -1445,6 +1446,12 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -            CP_AVG(busy_rx,    chan_rx);
 -            CP_AVG(busy_ext,   chan_busy_ext);
 -            CP_AVG(noise,      chan_noise);
++	default:
++		assert(0);
++	}
++	return 0;
++}
++
 +Sts__AssocType dppline_to_proto_sec_type(sec_type_t sec_type)
 +{
 +	switch (sec_type) {
@@ -1881,6 +1888,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -            return STS__WMM_AC__WMM_AC_BE;
 -        case RADIO_QUEUE_TYPE_BK:
 -            return STS__WMM_AC__WMM_AC_BK;
+-
+-        default:
+-            assert(0);
+-    }
 +	switch (ac_type) {
 +	case RADIO_QUEUE_TYPE_VI:
 +		return STS__WMM_AC__WMM_AC_VI;
@@ -1895,10 +1906,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		assert(0);
 +	}
  
--        default:
--            assert(0);
--    }
--
 -    return -1;
 +	return -1;
  }
@@ -2990,7 +2997,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
              sizeof(s->u.capacity) + s->u.capacity.numrec * sizeof(dpp_capacity_record_t),
              sizeof(Sts__Capacity*) +
              sizeof(Sts__Capacity) +
-@@ -1714,658 +1850,1126 @@ static void dppline_add_stat_network_pro
+@@ -1714,658 +1855,1126 @@ static void dppline_add_stat_network_pro
      }
  }
  
@@ -3072,10 +3079,13 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -
 -            cr->n_bs_band_report++;
 -        }
--
++	Sts__EventReport *sr = NULL;
+ 
 -        cr->bs_band_report = calloc(cr->n_bs_band_report, sizeof(*cr->bs_band_report));
 -        assert(cr->bs_band_report);
--
++	uint32_t session = 0;
++	dppline_events_stats_t *events = &s->u.events;
+ 
 -        // For each band per client
 -        for (band = 0, band_report = 0; band < c_rec->num_band_records; band++)
 -        {
@@ -3179,13 +3189,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -
 -                er->is_rrm_supported = e_rec->is_RRM_supported;
 -                er->has_is_rrm_supported = true;
-+	Sts__EventReport *sr = NULL;
- 
+-
 -                er->band_cap_2g = e_rec->band_cap_2G;
 -                er->has_band_cap_2g = true;
-+	uint32_t session = 0;
-+	dppline_events_stats_t *events = &s->u.events;
- 
+-
 -                er->band_cap_5g = e_rec->band_cap_5G;
 -                er->has_band_cap_5g = true;
 -
@@ -3476,7 +3483,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +			assert(ide);
 +			sts__event_report__client_id_event__init(ide);
 +
-+			//ide->clt_mac = malloc(MACADDR_STR_LEN);
++			ide->clt_mac = malloc(MACADDR_STR_LEN);
 +			//dpp_mac_to_str(ide->clt_mac, cs_rec->id_event->clt_mac);
 +			ide->session_id = cs_rec->id_event->session_id;
 +
@@ -4405,6 +4412,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -        case DPP_T_DEVICE:
 -            dppline_add_stat_device(r, s);
 -            break;
+-
+-        case DPP_T_BS_CLIENT:
+-            dppline_add_stat_bs_client(r, s);
+-            break;
 +	Sts__RssiReport *sr = NULL;
 +	Sts__RssiPeer *dr; // dest rec
 +	uint32_t i = 0;
@@ -4542,10 +4553,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		dppline_add_stat_rssi(r, s);
 +		break;
  
--        case DPP_T_BS_CLIENT:
--            dppline_add_stat_bs_client(r, s);
--            break;
--
 -        case DPP_T_RSSI:
 -            dppline_add_stat_rssi(r, s);
 -            break;
@@ -4626,7 +4633,8 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +static bool dppline_put(DPP_STS_TYPE type, void *rpt)
  {
 -    dppline_stats_t *s = NULL;
--
++	dppline_stats_t *s = NULL;
+ 
 -    /* allocate buffer          */
 -    s = dpp_alloc_stat();
 -    if (!s)
@@ -4644,10 +4652,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -        dppline_free_stat(s);
 -        return false;
 -    }
-+	dppline_stats_t *s = NULL;
- 
--    /* insert new element into stats queue  */
--    ds_dlist_insert_tail(&g_dppline_list, s);
 +	/* allocate buffer          */
 +	s = dpp_alloc_stat();
 +	if (!s) {
@@ -4680,6 +4684,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		dppline_remove_head();
 +	}
  
+-    /* insert new element into stats queue  */
+-    ds_dlist_insert_tail(&g_dppline_list, s);
++	dppline_log_queue();
+ 
 -    // update counters
 -    queue_depth++;
 -    queue_size += s->size;
@@ -4695,8 +4703,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -    }
 -
 -    dppline_log_queue();
-+	dppline_log_queue();
- 
+-
 -    return true;
 +	return true;
  }
@@ -4721,7 +4728,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2373,15 +2977,15 @@ bool dpp_init()
+@@ -2373,15 +2982,15 @@ bool dpp_init()
   */
  bool dpp_put_survey(dpp_survey_report_data_t *rpt)
  {
@@ -4740,7 +4747,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2389,7 +2993,7 @@ bool dpp_put_capacity(dpp_capacity_repor
+@@ -2389,7 +2998,7 @@ bool dpp_put_capacity(dpp_capacity_repor
   */
  bool dpp_put_neighbor(dpp_neighbor_report_data_t *rpt)
  {
@@ -4749,7 +4756,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2397,32 +3001,32 @@ bool dpp_put_neighbor(dpp_neighbor_repor
+@@ -2397,32 +3006,32 @@ bool dpp_put_neighbor(dpp_neighbor_repor
   */
  bool dpp_put_client(dpp_client_report_data_t *rpt)
  {
@@ -4792,13 +4799,14 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2436,250 +3040,240 @@ bool dpp_put_network_probe(dpp_network_p
+@@ -2436,250 +3045,240 @@ bool dpp_put_network_probe(dpp_network_p
  /*
   * Put Video/voice stats to internal queue
   */
 -bool dpp_put_ucc(dpp_ucc_report_data_t * rpt)
 +bool dpp_put_ucc(dpp_ucc_report_data_t *rpt)
-+{
+ {
+-    return dppline_put(DPP_T_UCC, rpt);
 +	return dppline_put(DPP_T_UCC, rpt);
 +}
 +
@@ -4806,8 +4814,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 + * Put event report to internal queue
 + */
 +bool dpp_put_events(dpp_event_report_data_t *rpt)
- {
--    return dppline_put(DPP_T_UCC, rpt);
++{
 +	return dppline_put(DPP_T_EVENTS, rpt);
  }
  
@@ -4865,6 +4872,8 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -    {
 -        /* try to add new stats data to protobuf report */
 -        dppline_add_stat(report, s);
+-
+-        tmp_packed_size = sts__report__get_packed_size(report);
 +	Sts__Report *report = malloc(sizeof(Sts__Report));
 +	sts__report__init(report);
 +	report->nodeid = getNodeid();
@@ -4900,12 +4909,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				break;
 +			}
  
--        tmp_packed_size = sts__report__get_packed_size(report);
+-        /* check the size, if size too small break the process */
 +			queue_size -= s->size;
 +			queue_depth--;
  
--        /* check the size, if size too small break the process */
--
 -        /* if main buffer size is not enough break */
 -        if (sz < tmp_packed_size)
 -        {
@@ -5027,46 +5034,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -    {
 -        // add new stats data to protobuf report
 -        dppline_add_stat(report, s);
--
--        // at least one stat report is in protobuf, mark success
--        ret = true;
--
--        // remove item from the list and free memory
--        s = ds_dlist_iremove(&iter);
--
--        // decrease queue depth and size
--        if (0 == queue_depth)
--        {
--            LOG(ERR, "Queue depth zero but dpp list not empty");
--        }
--        else
--        {
--            queue_depth--;
--        }
--        queue_size -= s->size;
--
--        // calc approx unpacked size
--        unpacked_size += s->size + sizeof(s->u);
--
--        // free internal stats structure
--        dppline_free_stat(s);
--
--        // unpacked compare is faster, as long as unpacked is smaller than
--        // suggested we don't need to calculate packed size
--        if (unpacked_size > suggest_sz)
--        {
--            // compute packed size
--            packed_size = sts__report__get_packed_size(report);
--            if (packed_size > suggest_sz)
--            {
--                // don't keep adding, stop here
--                goto L_resize;
--            }
--        }
--    }
--
--    // compute packed size
--    packed_size = sts__report__get_packed_size(report);
 +	Sts__Report *report = malloc(sizeof(Sts__Report));
 +	sts__report__init(report);
 +	report->nodeid = getNodeid();
@@ -5124,6 +5091,50 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +	// pack current report to return buffer
 +	*packed_sz = sts__report__pack(report, buff);
  
+-        // at least one stat report is in protobuf, mark success
+-        ret = true;
+-
+-        // remove item from the list and free memory
+-        s = ds_dlist_iremove(&iter);
+-
+-        // decrease queue depth and size
+-        if (0 == queue_depth)
+-        {
+-            LOG(ERR, "Queue depth zero but dpp list not empty");
+-        }
+-        else
+-        {
+-            queue_depth--;
+-        }
+-        queue_size -= s->size;
+-
+-        // calc approx unpacked size
+-        unpacked_size += s->size + sizeof(s->u);
+-
+-        // free internal stats structure
+-        dppline_free_stat(s);
+-
+-        // unpacked compare is faster, as long as unpacked is smaller than
+-        // suggested we don't need to calculate packed size
+-        if (unpacked_size > suggest_sz)
+-        {
+-            // compute packed size
+-            packed_size = sts__report__get_packed_size(report);
+-            if (packed_size > suggest_sz)
+-            {
+-                // don't keep adding, stop here
+-                goto L_resize;
+-            }
+-        }
+-    }
++	// free memory used for report using system allocator
++	sts__report__free_unpacked(report, NULL);
+ 
+-    // compute packed size
+-    packed_size = sts__report__get_packed_size(report);
++	// debug
++	dppline_log_queue();
+ 
 -    // if buff size too small increase buff
 -    if (packed_size > suggest_sz)
 -    {
@@ -5132,13 +5143,9 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 -                (int)suggest_sz, (int)packed_size);
 -        buff = realloc(buff, packed_size);
 -    }
-+	// free memory used for report using system allocator
-+	sts__report__free_unpacked(report, NULL);
- 
+-
 -    *pbuff = buff;
-+	// debug
-+	dppline_log_queue();
- 
+-
 -    // pack current report to return buffer
 -    *packed_sz = sts__report__pack(report, buff);
 -
