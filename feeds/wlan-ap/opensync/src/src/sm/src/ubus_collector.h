@@ -29,7 +29,7 @@ void ubus_collector_cleanup(void);
 #define UBUS_SESSIONS_POLLING_DELAY 9
 
 /* Poll the session clearing 'garbage collector' after this many seconds */
-#define UBUS_GARBAGE_COLLECTION_DELAY 15
+#define UBUS_GARBAGE_COLLECTION_DELAY 1
 
 #define UBUS_OBJ_LEN 64
 

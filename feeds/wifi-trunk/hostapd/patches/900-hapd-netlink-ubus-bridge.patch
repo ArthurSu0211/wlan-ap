@@ -210,7 +210,7 @@
 +};
 +
 +static const struct blobmsg_policy client_session_del_policy[__CSESS_REQ_MAX] = {
-+	[CSESS_REQ_SESS_ID] = { .name = "session_id", .type = BLOBMSG_TYPE_STRING },
++	[CSESS_REQ_SESS_ID] = { .name = "session_id", .type = BLOBMSG_TYPE_INT64 },
 +};
 +
 +static int hostapd_clear_session(struct ubus_context *ctx,
@@ -231,10 +231,10 @@
 +	if (!tb[CSESS_REQ_SESS_ID])
 +		return UBUS_STATUS_INVALID_ARGUMENT;
 +
++	session_id = blobmsg_get_u64(tb[CSESS_REQ_SESS_ID]);
 +	/* remove from AVL and ubus session object) */
 +	avl_for_each_element_safe(&hapd->ubus.rt_events, rec, avl, rec_next)
 +	{
-+		session_id = strtoll(blobmsg_get_string(tb[CSESS_REQ_SESS_ID]), NULL, 10);
 +		if (session_id == rec->session_id) {
 +			/* dec counter and delete */
 +			cached_events_nr -= rec->rec_nr;
