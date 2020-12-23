@@ -3330,10 +3330,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				ae->has_using11v = true;
 +			}
 +
-+			//if (cs_rec->assoc_event->timestamp) {
-+			//	ae->timestamp_ms = cs_rec->assoc_event->timestamp;
-+			//	ae->has_timestamp_ms = true;
-+			//}
++			if (cs_rec->assoc_event->timestamp) {
++				ae->timestamp_ms = cs_rec->assoc_event->timestamp;
++				ae->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->auth_event) {
@@ -3355,10 +3355,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				authe->has_auth_status = true;
 +			}
 +
-+			//if (cs_rec->auth_event->timestamp) {
-+			//	authe->timestamp_ms = cs_rec->auth_event->timestamp;
-+			//	authe->has_timestamp_ms = true;
-+			//}
++			if (cs_rec->auth_event->timestamp) {
++				authe->timestamp_ms = cs_rec->auth_event->timestamp;
++				authe->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->disconnect_event) {
@@ -3413,10 +3413,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				de->has_rssi = true;
 +			}
 +
-+			//if (cs_rec->disconnect_event->timestamp) {
-+			//	de->timestamp_ms = cs_rec->disconnect_event->timestamp;
-+			//	de->has_timestamp_ms = true;
-+			//}
++			if (cs_rec->disconnect_event->timestamp) {
++				de->timestamp_ms = cs_rec->disconnect_event->timestamp;
++				de->has_timestamp_ms = true;
++			}
 +
 +				de->ssid = strdup(cs_rec->disconnect_event->ssid);
 +				de->band = dppline_to_proto_radio(
@@ -3441,10 +3441,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				cfe->has_reason_code = true;
 +			}
 +
-+			//if (cs_rec->failure_event->timestamp) {
-+			//	cfe->timestamp_ms = cs_rec->failure_event->timestamp;
-+			//	cfe->has_timestamp_ms = true;
-+			//}
++			if (cs_rec->failure_event->timestamp) {
++				cfe->timestamp_ms = cs_rec->failure_event->timestamp;
++				cfe->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->first_data_event) {
@@ -3468,10 +3468,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				fde->has_fdata_rx_up_ts_in_us = true;
 +			}
 +
-+			//if(cs_rec->first_data_event->timestamp) {
-+			//	fde->timestamp_ms = cs_rec->first_data_event->timestamp;
-+			//	fde->has_timestamp_ms = true;
-+			//}
++			if(cs_rec->first_data_event->timestamp) {
++				fde->timestamp_ms = cs_rec->first_data_event->timestamp;
++				fde->has_timestamp_ms = true;
++			}
 +			
 +		}
 +
@@ -3491,10 +3491,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				ide->clt_id = strdup(ide->clt_id);
 +			}	
 +
-+			//if(cs_rec->id_event->timestamp) {
-+			//	ide->timestamp_ms = cs_rec->id_event->timestamp;
-+			//	ide->has_timestamp_ms = true;
-+			//}		
++			if(cs_rec->id_event->timestamp) {
++				ide->timestamp_ms = cs_rec->id_event->timestamp;
++				ide->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->ip_event) {
@@ -3515,15 +3515,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				ipe->has_ip_addr = true;
 +			}
 +
-+			//if(cs_rec->ip_event->timestamp) {
-+			//	ipe->timestamp_ms = cs_rec->ip_event->timestamp;
-+			//	ipe->has_timestamp_ms = true;
-+			//}
-+
-+			//if(cs_rec->ip_event->timestamp) {
-+			//	ipe->timestamp_ms = cs_rec->ip_event->timestamp;
-+			//	ipe->has_timestamp_ms = true;
-+			//}	
++			if(cs_rec->ip_event->timestamp) {
++				ipe->timestamp_ms = cs_rec->ip_event->timestamp;
++				ipe->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->timeout_event) {
@@ -3556,10 +3551,10 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +					toe->has_last_rcv_up_ts_in_us = true;
 +			}
 +
-+			//if(cs_rec->timeout_event->timestamp) {
-+			//	toe->timestamp_ms = cs_rec->timeout_event->timestamp;
-+			//	toe->has_timestamp_ms = true;
-+			//}	
++			if(cs_rec->timeout_event->timestamp) {
++				toe->timestamp_ms = cs_rec->timeout_event->timestamp;
++				toe->has_timestamp_ms = true;
++			}
 +		}
 +
 +		if(cs_rec->connect_event) {
@@ -3674,10 +3669,15 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				coe->has_ev_time_bootup_in_us_ip = true;
 +			}
 +
-+			//if (cs_rec->connect_event->assoc_rssi) {
-+			//	coe->assoc_rssi = cs_rec->connect_event->assoc_rssi;
-+			//	coe->has_assoc_rssi = true;
-+			//}
++			if (cs_rec->connect_event->assoc_rssi) {
++				coe->assoc_rssi = cs_rec->connect_event->assoc_rssi;
++				coe->has_assoc_rssi = true;
++			}
++
++			if(cs_rec->connect_event->timestamp) {
++				coe->timestamp_ms = cs_rec->connect_event->timestamp;
++				coe->has_timestamp_ms = true;
++			}
 +		}		
 +
 +	}
