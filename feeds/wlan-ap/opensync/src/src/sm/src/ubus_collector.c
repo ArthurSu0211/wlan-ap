@@ -87,6 +87,37 @@ static const struct blobmsg_policy client_first_data_event_policy[__CLIENT_FIRST
 	[CLIENT_FIRST_DATA_RX_TIMESTAMP] = {.name = "fdata_rx_up_ts_in_us", .type = BLOBMSG_TYPE_INT64},
 };
 
+static int frequency_to_channel(int freq)
+{
+	/* see 802.11-2007 17.3.8.3.2 and Annex J */
+	if (freq == 2484)
+		return 14;
+	else if (freq < 2484)
+		return (freq - 2407) / 5;
+	else if (freq >= 4910 && freq <= 4980)
+		return (freq - 4000) / 5;
+	else if (freq <= 45000) /* DMG band lower limit */
+		return (freq - 5000) / 5;
+	else if (freq >= 58320 && freq <= 64800)
+		return (freq - 56160) / 2160;
+	else
+		return 0;
+}
+
+static radio_type_t frequency_to_band(int freq)
+{
+	int chan = frequency_to_channel(freq);
+
+	if (chan <= 16)
+		return RADIO_TYPE_2G;
+	else if (chan >= 32 && chan <= 68)
+		return RADIO_TYPE_5GL;
+	else if (chan >= 96)
+		return RADIO_TYPE_5GU;
+	else
+		return RADIO_TYPE_NONE;
+}
+
 static int client_first_data_event_cb(struct blob_attr *msg,
 				      dpp_event_record_session_t *dpp_session,
 				      uint64_t event_session_id)
@@ -154,8 +185,6 @@ static int client_disconnect_event_cb(struct blob_attr *msg,
 	if (!dpp_session->disconnect_event)
 		return -1;
 
-	LOG(INFO, "Processing Disconnect event");
-
 	dpp_session->disconnect_event->session_id = event_session_id;
 
 	if (tb_client_disconnect_event[CLIENT_DISCONNECT_STA_MAC]) {
@@ -164,7 +193,7 @@ static int client_disconnect_event_cb(struct blob_attr *msg,
 	}
 
 	if (tb_client_disconnect_event[CLIENT_DISCONNECT_BAND])
-		dpp_session->disconnect_event->band = blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_BAND]);
+		dpp_session->disconnect_event->band = frequency_to_band(blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_BAND]));
 
 	if (tb_client_disconnect_event[CLIENT_DISCONNECT_RSSI])
 		dpp_session->disconnect_event->rssi = blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_RSSI]);
@@ -178,7 +207,7 @@ static int client_disconnect_event_cb(struct blob_attr *msg,
 		dpp_session->disconnect_event->timestamp = blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_TIMESTAMP]);
 
 	if (tb_client_disconnect_event[CLIENT_DISCONNECT_INTERNAL_RC])
-			dpp_session->disconnect_event->internal_rc = blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_INTERNAL_RC]);
+		dpp_session->disconnect_event->internal_rc = blobmsg_get_u32(tb_client_disconnect_event[CLIENT_DISCONNECT_INTERNAL_RC]);
 
 	return 0;
 }
@@ -205,8 +234,6 @@ static int client_auth_event_cb(struct blob_attr *msg,
 	if (!dpp_session->auth_event)
 		return -1;
 
-	LOG(INFO, "Processing Auth event");
-
 	dpp_session->auth_event->session_id = event_session_id;
 
 	if (tb_client_auth_event[CLIENT_AUTH_STA_MAC]) {
@@ -215,7 +242,7 @@ static int client_auth_event_cb(struct blob_attr *msg,
 	}
 
 	if (tb_client_auth_event[CLIENT_AUTH_BAND])
-		dpp_session->auth_event->band = blobmsg_get_u32(tb_client_auth_event[CLIENT_AUTH_BAND]);
+		dpp_session->auth_event->band = frequency_to_band(blobmsg_get_u32(tb_client_auth_event[CLIENT_AUTH_BAND]));
 
 	if (tb_client_auth_event[CLIENT_AUTH_AUTH_SSID]) {
 		ssid = blobmsg_get_string(tb_client_auth_event[CLIENT_AUTH_AUTH_SSID]);
@@ -253,8 +280,6 @@ static int client_assoc_event_cb(struct blob_attr *msg,
 	if (!dpp_session->assoc_event)
 		return -1;
 
-	LOG(INFO, "Processing Assoc event");
-
 	dpp_session->assoc_event->session_id = event_session_id;
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_STA_MAC]) {
@@ -271,25 +296,25 @@ static int client_assoc_event_cb(struct blob_attr *msg,
 		dpp_session->assoc_event->timestamp = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_TIMESTAMP]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_INTERNAL_SC])
-			dpp_session->assoc_event->internal_sc = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_INTERNAL_SC]);
+		dpp_session->assoc_event->internal_sc = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_INTERNAL_SC]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_RSSI])
-			dpp_session->assoc_event->rssi = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_RSSI]);
+		dpp_session->assoc_event->rssi = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_RSSI]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_BAND])
-			dpp_session->assoc_event->band = blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_BAND]);
+		dpp_session->assoc_event->band = frequency_to_band(blobmsg_get_u32(tb_client_assoc_event[CLIENT_ASSOC_BAND]));
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_ASSOC_TYPE])
-				dpp_session->assoc_event->assoc_type = blobmsg_get_u8(tb_client_assoc_event[CLIENT_ASSOC_ASSOC_TYPE]);
+		dpp_session->assoc_event->assoc_type = blobmsg_get_u8(tb_client_assoc_event[CLIENT_ASSOC_ASSOC_TYPE]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_USING11K])
-				dpp_session->assoc_event->using11k = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11K]);
+		dpp_session->assoc_event->using11k = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11K]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_USING11R])
-				dpp_session->assoc_event->using11r = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11R]);
+		dpp_session->assoc_event->using11r = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11R]);
 
 	if (tb_client_assoc_event[CLIENT_ASSOC_USING11V])
-				dpp_session->assoc_event->using11v = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11V]);
+		dpp_session->assoc_event->using11v = blobmsg_get_bool(tb_client_assoc_event[CLIENT_ASSOC_USING11V]);
 
 	return 0;
 }
@@ -386,15 +411,11 @@ static void ubus_collector_session_cb(struct ubus_request *req, int type,
 		ds_dlist_insert_tail(&g_event_report.client_event_list, event_record);
 		event_record = NULL;
 
-		for (old_session = ds_dlist_ifirst(&session_iter, &g_event_report.client_event_list); old_session != NULL; old_session = ds_dlist_inext(&session_iter)) {
-			LOG(INFO, "Current list======== %llu", old_session->client_session.session_id);
-		}
 		/* Schedule session for deletion */
 		delete_entry = calloc(1, sizeof(delete_entry_t));
 		if (delete_entry) {
 			memset(delete_entry, 0, sizeof(delete_entry_t));
 			delete_entry->session_id = session_id;
-			LOG(INFO, "hostapd object to call delete for===%s", ifname);
 			strncpy(delete_entry->bss, ifname, UBUS_OBJ_LEN);
 			ds_dlist_insert_tail(&deletion_pending_list, delete_entry);
 			delete_entry = NULL;
@@ -452,7 +473,6 @@ static void get_sessions(void * arg)
 
 	for (bss_record = ds_dlist_ifirst(&record_iter, &bss_list);
 			bss_record != NULL; bss_record = ds_dlist_inext(&record_iter)) {
-		LOG(INFO, "get sessions for %s", bss_record->obj_name);
 		ubus_collector_hostapd_invoke(bss_record->obj_name);
 	}
 	evsched_task_reschedule();
@@ -531,7 +551,6 @@ static void ubus_collector_hostapd_bss_invoke(void *arg)
 		return;
 	}
 
-	LOG(INFO, "ubus_collector: requesting hostapd bss data");
 	struct ubus_request *req = malloc(sizeof(struct ubus_request));
 
 	if (!req) {
@@ -566,7 +585,6 @@ static void ubus_collector_hostapd_clear(uint64_t session_id, char *object_path)
 	blob_buf_init(&b, 0);
 	blobmsg_add_u64(&b, "session_id", session_id);
 
-	LOG(INFO, "ubus_collector: deleting session [%llu]", session_id);
 	if (UBUS_STATUS_OK != ubus_invoke(ubus, ubus_object_id, hostapd_method, b.head, NULL, NULL, 1000)) {
 		LOG(ERR, "ubus call to clear session failed");
 	}
@@ -583,7 +601,6 @@ static void ubus_garbage_collector(void *arg)
 	}
 
 	/* Remove a single session from the deletion list */
-	LOG(INFO, "ubus_collector: garbage collection");
 
 	delete_entry = ds_dlist_head(&deletion_pending_list);
 	if (delete_entry) {
