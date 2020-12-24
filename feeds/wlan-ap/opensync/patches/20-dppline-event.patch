@@ -233,7 +233,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /* free allocated memory for single stat */
-@@ -249,7 +243,41 @@ static void dppline_free_stat(dppline_st
+@@ -249,7 +243,40 @@ static void dppline_free_stat(dppline_st
                  break;
              case DPP_T_UCC:
                  free(&s->u.ucc.record);
@@ -242,7 +242,6 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +            case DPP_T_EVENTS:
 +		 for (i=0; i<s->u.events.client_event_qty; i++)
 +		 {
-+			LOG(ERR,"deallocating memory : session id : %lld",s->u.events.client_event_list[i].session_id );
 +			if(s->u.events.client_event_list[i].assoc_event)
 +				free(s->u.events.client_event_list[i].assoc_event);
 +
@@ -276,7 +275,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
              default:;
          }
  
-@@ -258,409 +286,461 @@ static void dppline_free_stat(dppline_st
+@@ -258,409 +285,461 @@ static void dppline_free_stat(dppline_st
  }
  
  /* copy stats to internal buffer */
@@ -988,7 +987,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		{
 +			dst->u.events.client_event_qty++;
 +		}
-+		LOG(ERR,"Number of client events received : %d ", dst->u.events.client_event_qty);
++
 +		size = dst->u.events.client_event_qty * sizeof(dpp_event_record_session_t);
 +		dst->u.events.client_event_list = calloc(1, size);
 +		int count = 0;
@@ -1139,7 +1138,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
          case DPP_T_NETWORK_PROBE:
             {
                  dpp_network_probe_report_data_t *report_data = sts;
-@@ -698,945 +778,1006 @@ static bool dppline_copysts(dppline_stat
+@@ -698,945 +777,1006 @@ static bool dppline_copysts(dppline_stat
  
             }
             break;
@@ -2997,7 +2996,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
              sizeof(s->u.capacity) + s->u.capacity.numrec * sizeof(dpp_capacity_record_t),
              sizeof(Sts__Capacity*) +
              sizeof(Sts__Capacity) +
-@@ -1714,658 +1855,1126 @@ static void dppline_add_stat_network_pro
+@@ -1714,658 +1854,1126 @@ static void dppline_add_stat_network_pro
      }
  }
  
@@ -3365,7 +3364,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +			//cs->has_client_disconnect_event = true;
 +
 +			Sts__EventReport__ClientDisconnectEvent *de;
-+			de = cs->client_disconnect_event = malloc(sizeof(*cs->client_auth_event));
++			de = cs->client_disconnect_event = malloc(sizeof(*cs->client_disconnect_event));
 +			assert(de);
 +			sts__event_report__client_disconnect_event__init(de);
 +
@@ -4728,7 +4727,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2373,15 +2982,15 @@ bool dpp_init()
+@@ -2373,15 +2981,15 @@ bool dpp_init()
   */
  bool dpp_put_survey(dpp_survey_report_data_t *rpt)
  {
@@ -4747,7 +4746,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2389,7 +2998,7 @@ bool dpp_put_capacity(dpp_capacity_repor
+@@ -2389,7 +2997,7 @@ bool dpp_put_capacity(dpp_capacity_repor
   */
  bool dpp_put_neighbor(dpp_neighbor_report_data_t *rpt)
  {
@@ -4756,7 +4755,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2397,32 +3006,32 @@ bool dpp_put_neighbor(dpp_neighbor_repor
+@@ -2397,32 +3005,32 @@ bool dpp_put_neighbor(dpp_neighbor_repor
   */
  bool dpp_put_client(dpp_client_report_data_t *rpt)
  {
@@ -4799,7 +4798,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  }
  
  /*
-@@ -2436,250 +3045,240 @@ bool dpp_put_network_probe(dpp_network_p
+@@ -2436,250 +3044,240 @@ bool dpp_put_network_probe(dpp_network_p
  /*
   * Put Video/voice stats to internal queue
   */
