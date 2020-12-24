@@ -41,9 +41,6 @@ typedef struct {
 	/* Structure pointing to upper layer events storage */
 	dpp_event_report_data_t report;
 
-	/* event list (only one for now) */
-	ds_dlist_t record_list;
-
 	/* Reporting start timestamp used for reporting timestamp calculation */
 	uint64_t report_ts;
 } sm_events_ctx_t;
@@ -88,6 +85,23 @@ static bool dpp_events_report_timer_restart(ev_timer *timer)
 	return true;
 }
 
+static void sm_events_report_clear(ds_dlist_t *report_list)
+{
+	ds_dlist_iter_t record_iter;
+
+	if (ds_dlist_is_empty(report_list))
+		return;
+
+	dpp_event_record_t *record = NULL;
+	for (record = ds_dlist_ifirst(&record_iter, report_list);
+			record != NULL;
+			record = ds_dlist_inext(&record_iter)) {
+		ds_dlist_iremove(&record_iter);
+		dpp_event_record_free(record);
+		record = NULL;
+	}
+}
+
 static void sm_events_report(EV_P_ ev_timer *w, int revents)
 {
 	sm_events_ctx_t *events_ctx = (sm_events_ctx_t *)w->data;
@@ -100,7 +114,6 @@ static void sm_events_report(EV_P_ ev_timer *w, int revents)
 	ds_dlist_iter_t record_iter;
 
 	dpp_events_report_timer_restart(report_timer);
-
 
 	for (sm_record = ds_dlist_ifirst(&record_iter, &g_event_report.client_event_list); sm_record != NULL; sm_record = ds_dlist_inext(&record_iter)) {
 		dpp_record = dpp_event_record_alloc();
@@ -121,10 +134,12 @@ static void sm_events_report(EV_P_ ev_timer *w, int revents)
 		ds_dlist_insert_tail(&report_ctx->client_event_list, dpp_record);
 	}
 
-	LOG(INFO, "Sending events report...");
 	if (!ds_dlist_is_empty(&report_ctx->client_event_list)) {
+		LOG(INFO, "Sending events report...");
 		dpp_put_events(report_ctx);
 	}
+
+	sm_events_report_clear(&report_ctx->client_event_list);
 }
 
 /******************************************************************************
@@ -156,9 +171,6 @@ bool sm_events_report_request(radio_entry_t *radio_cfg,
 
 		/* Initialize report list */
 		ds_dlist_init(&report_ctx->client_event_list, dpp_event_record_t, node);
-
-		/* Initialize event list */
-		ds_dlist_init(&events_ctx->record_list, dpp_event_record_t, node);
 
 		/* Initialize event lib timers and pass the global
 			internal cache
