@@ -1,0 +1,15 @@
+choice
+	prompt "Choose wlan-v10 compile flags"
+	default WLAN_V10
+	depends on PACKAGE_kmod-wlan-v10
+
+config WLAN_V10
+	bool "wlan-v10"
+
+config WLAN_V10_AOA
+	bool "wlan-v10-aoa"
+
+config WLAN_V10_WLS
+        bool "wlan-v10-wls"
+
+endchoice

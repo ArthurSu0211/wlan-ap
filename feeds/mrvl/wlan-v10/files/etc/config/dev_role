@@ -1,0 +1,2 @@
+config devicerole
+        option role 'ap'

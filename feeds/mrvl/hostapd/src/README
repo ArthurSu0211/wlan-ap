@@ -1,0 +1,11 @@
+.
+├── config
+└── hostap
+    ├── src
+    ├── hostapd
+    └── wpa_supplicant
+
+1. Unmodified source code in hostap dir, which clone from git://w1.fi/srv/git/hostap.git.
+2. Use marvell custom config files:
+       cp config/hostapd-marvell.config hostap/hostapd/.config
+       cp config/wpa_supplicant-marvell.config hostap/wpa_supplicant/.config

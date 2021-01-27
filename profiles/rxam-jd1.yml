@@ -1,0 +1,12 @@
+---
+profile: RXAM-JD1
+target: cn9130
+subtarget: cortexa72
+description: Build image for the Join Digital RXAM-JD1
+feeds:
+  - name: mrvl
+    path: ../../feeds/mrvl
+packages:
+  - kmod-wlan-v10
+  - hostapd
+  - wireless-tools

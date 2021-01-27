@@ -1,0 +1,2 @@
+config wps
+	option device_pin "54900738"

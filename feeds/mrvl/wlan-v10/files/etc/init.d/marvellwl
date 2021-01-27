@@ -1,0 +1,110 @@
+#!/bin/sh /etc/rc.common
+
+START=15
+STOP=15
+
+SERVICE_USE_PID=1
+SERVICE_WRITE_PID=1
+SERVICE_DAEMONIZE=0
+EXTRA_COMMANDS="rules"
+
+start() {
+	. /lib/functions.sh
+	. /lib/functions/system.sh
+
+	router_pin=$(uci get wps.@wps[0].router_pin)
+	if [ "$router_pin" == "" ]; then
+		wps_pin=$(mtd_get_wps_pin devinfo wps_pin)
+		uci set wps.@wps[0].router_pin="$wps_pin"
+		uci commit wps
+	fi
+	
+	mfg_mode=`fw_printenv  mfg_mode`                  
+    mfg_mode=${mfg_mode#*=} 
+
+	machine=$(cat /proc/device-tree/model)
+	
+	kver=$(printf "$(uname -r)" | cut -f1 -d"-")
+	
+	#device role is AP
+	if [ "$mfg_mode" == "0" ] || [ "$mfg_mode" == "1" ]; then  
+            cd /lib/firmware/marvell && ln -sf W9064-AP.bin W9064.bin
+            cd /lib/firmware/marvell && ln -sf W9068-AP.bin W9068.bin
+	    uci set dev_role.@devicerole[0].role="ap"
+            uci commit  dev_role
+	fi
+	
+	#device role is STA
+	if [ "$mfg_mode" == "2" ]; then  
+            cd /lib/firmware/marvell && ln -sf W9064-STA.bin W9064.bin
+            cd /lib/firmware/marvell && ln -sf W9068-STA.bin W9068.bin
+	    uci set dev_role.@devicerole[0].role="sta"
+	    uci commit  dev_role
+	fi
+
+	if [ "$mfg_mode" != "1" ]; then  
+		insmod /lib/modules/"$kver"/ap8x.ko
+	fi
+
+	HAS_WDEV0=`grep -rw wdev0 /proc/net/dev`
+	if [ -n "$HAS_WDEV0" ]; then
+		case "$machine" in
+			*"Marvell Armada 3900 A1 AXIS-BT V4")
+				iwpriv wdev0 setcmd "loadpwrgrpstbl /etc/W9068_TX_Power_Table_v1_1.ini"
+				;;
+			*"Marvell Armada 3900 A1 AlliesBT")
+				iwpriv wdev0 setcmd "loadpwrgrpstbl /etc/AlliesBT_W9064_TX_Power_Table_v0_2.ini"
+				;;
+			*"Marvell Armada 3900 A1 AP720x")
+				iwpriv wdev0 setcmd "loadpwrgrpstbl /etc/W9068_TX_Power_Table_AP7202_8A_V1.ini"
+				;;
+			*"CN9130-CRB-A" |\
+			*"Join Digital RXAM-JD1")
+				iwpriv wdev0 setcmd "loadpwrgrpstbl /etc/W9064_TX_Power_Table_v1_1_0708.ini"
+				;;
+		esac
+		ifconfig wdev0 up
+		iwconfig wdev0 channel 36
+		iwconfig wdev0 commit
+		
+		#echo 8 > /proc/irq/46/smp_affinity
+		wdev0_SQ=`grep  "wdev0_SQ\[0\]" /proc/interrupts`
+		wdev0_SQ_num=`echo ${wdev0_SQ%%:*}`
+		echo 8 > /proc/irq/$wdev0_SQ_num/smp_affinity
+		
+		echo 7 >/sys/class/net/wdev0ap0/queues/rx-0/rps_cpus
+	fi
+
+	HAS_WDEV1=`grep -rw wdev1 /proc/net/dev`
+	if [ -n "$HAS_WDEV1" ]; then
+		case "$machine" in
+			*"Marvell Armada 3900 A1 AXIS-BT V4")
+				iwpriv wdev1 setcmd "loadpwrgrpstbl /etc/W9064_TX_Power_Table_v1_1.ini"
+				;;
+			*"Marvell Armada 3900 A1 AlliesBT")
+				iwpriv wdev1 setcmd "loadpwrgrpstbl /etc/AlliesBT_W9064_TX_Power_Table_v0_2.ini"
+				;;
+			*"Marvell Armada 3900 A1 AP720x")
+				iwpriv wdev1 setcmd "loadpwrgrpstbl /etc/W9064_TX_Power_Table_AP7202_8A_V1.ini"
+				;;
+			*"CN9130-CRB-A" |\
+			*"Join Digital RXAM-JD1")
+				iwpriv wdev1 setcmd "loadpwrgrpstbl /etc/W9064_TX_Power_Table_v1_1_0708.ini"
+				;;
+		esac
+		ifconfig wdev1 up
+		iwconfig wdev1 channel 6
+		iwconfig wdev1 commit
+	fi
+	
+	wlan_ver=`iwpriv wdev0 version | grep ".*P"`
+	sed -i "s/DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION=\'OpenWrt Designated Driver($wlan_ver)\'/g" /etc/openwrt_release
+	wlan_exist=`cat /etc/banner | grep -o "WLAN"`
+	if [ -z $wlan_exist ]; then
+		sed -i "/System.*/a\ WLAN:\ $wlan_ver" /etc/banner
+	else
+		sed -i "s/^.*WLAN:.*/\ WLAN:\ $wlan_ver/g" /etc/banner
+	fi
+	
+}
+

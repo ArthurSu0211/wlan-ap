@@ -1,0 +1,9 @@
+#!/bin/sh
+
+[ "${ACTION}" = "add" ] && [ "${INTERFACE%%[0-9]}" = "wdev" ] && {
+	wifi config > /tmp/wireless.tmp
+	[ -s /tmp/wireless.tmp ] && {
+		cat /tmp/wireless.tmp >> /etc/config/wireless
+	}
+	rm -f /tmp/wireless.tmp
+}
