@@ -1,0 +1,63 @@
+From 066b7e5ce450a85a4e1bcb3f489bbdf11d4d64c2 Mon Sep 17 00:00:00 2001
+From: Rick Sommerville <rick.sommerville@netexperience.com>
+Date: Mon, 8 Feb 2021 14:25:49 -0500
+Subject: [PATCH] EX227/EX447 default config correction
+
+---
+ target/linux/ipq807x/base-files/etc/board.d/02_network | 7 ++++---
+ target/linux/ipq807x/image/ipq807x.mk                  | 4 ++--
+ 2 files changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/target/linux/ipq807x/base-files/etc/board.d/02_network b/target/linux/ipq807x/base-files/etc/board.d/02_network
+index 15c341c449..b1cea1c5d3 100755
+--- a/target/linux/ipq807x/base-files/etc/board.d/02_network
++++ b/target/linux/ipq807x/base-files/etc/board.d/02_network
+@@ -15,11 +15,12 @@ qcom_setup_interfaces()
+ 	cig,wf188|\
+ 	tplink,ex227|\
+ 	tplink,ex447)
+-		ucidef_set_interface_lan "eth0"
++		ucidef_set_interface_wan "eth0"
++		ucidef_set_interface_lan ""
+ 		;;
+ 	qcom,ipq6018-cp01|\
+ 	qcom,ipq807x-hk01)
+-			ucidef_set_interface_lan "eth0 eth1 eth2 eth3 eth4"
++		ucidef_set_interface_lan "eth0 eth1 eth2 eth3 eth4"
+ 		ucidef_set_interface_wan "eth5"
+ 		;;
+ 	cig,wf188n|\
+@@ -52,7 +53,7 @@ qcom_setup_macs()
+ 	*)
+ 		;;
+ 	esac
+-	[ -n "$wan_mac" ] && ucidef_set_interface_macaddr "lan" $lan_mac
++	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr "lan" $lan_mac
+ 	[ -n "$wan_mac" ] && ucidef_set_interface_macaddr "wan" $wan_mac
+ }
+ 
+diff --git a/target/linux/ipq807x/image/ipq807x.mk b/target/linux/ipq807x/image/ipq807x.mk
+index eb23ca2e3a..8f9cda14a3 100644
+--- a/target/linux/ipq807x/image/ipq807x.mk
++++ b/target/linux/ipq807x/image/ipq807x.mk
+@@ -48,7 +48,7 @@ define Device/tplink_ex227
+   DEVICE_TITLE := TP-Link EX227
+   DEVICE_DTS := qcom-ipq807x-ex227
+   DEVICE_DTS_CONFIG=config@hk07
+-  SUPPORTED_DEVICES := tplinl,ex227
++  SUPPORTED_DEVICES := tplink,ex227
+   DEVICE_PACKAGES := ath11k-wifi-tplink-ex227
+   IMAGES := sysupgrade.tar nor-factory.bin
+   IMAGE/sysupgrade.tar/squashfs := append-rootfs | pad-rootfs | sysupgrade-tar rootfs=$$$$@ | append-metadata
+@@ -60,7 +60,7 @@ define Device/tplink_ex447
+   DEVICE_TITLE := TP-Link EX447
+   DEVICE_DTS := qcom-ipq807x-ex447
+   DEVICE_DTS_CONFIG=config@hk09
+-  SUPPORTED_DEVICES := tplinl,ex447
++  SUPPORTED_DEVICES := tplink,ex447
+   DEVICE_PACKAGES := ath11k-wifi-tplink-ex447
+   IMAGES := sysupgrade.tar nor-factory.bin
+   IMAGE/sysupgrade.tar/squashfs := append-rootfs | pad-rootfs | sysupgrade-tar rootfs=$$$$@ | append-metadata
+-- 
+2.17.1
+
