@@ -1,7 +1,9 @@
 #!/bin/sh
 
 MAC=$(cat /etc/board.json | jsonfilter -e '@["network"]["wan"]["macaddr"]' | tr -d :)
-[ -n "$MAC" ] || MAC=$(cat /sys/class/net/eth0/address | tr -d ":")
+WAN=$(cat /etc/board.json | jsonfilter -e '@["network"]["wan"]["ifname"]' | tr -d :)
+[ -n "$WAN" ] || WAN="eth0"
+[ -n "$MAC" ] || MAC=$(cat /sys/class/net/$WAN/address | tr -d ":")
 uci set system.@system[-1].hostname="OpenAp-${MAC:6}"
 uci commit system
 

@@ -20,8 +20,10 @@ linksys,ea8300)
 	PLATFORM=OPENWRT_EA8300
 	;;
 *)
+	WAN=$(cat /etc/board.json | jsonfilter -e '@["network"]["wan"]["ifname"]' | tr -d :)
+	[ -n "$WAN" ] || WAN="eth0"
 	MODEL=$(cat /tmp/sysinfo/board_name)
-	SERIAL=$(cat /sys/class/net/eth0/address | tr -d :)
+	SERIAL=$(cat /sys/class/net/$WAN/address | tr -d :)
 	PLATFORM=$(cat /tmp/sysinfo/model)
 	;;
 esac
