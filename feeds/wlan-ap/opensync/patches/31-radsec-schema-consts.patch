@@ -1,0 +1,112 @@
+--- a/interfaces/opensync.ovsschema
++++ b/interfaces/opensync.ovsschema
+@@ -9368,6 +9368,109 @@
+             }
+        },
+       "isRoot": true
++    },
++    "radius_config": {
++        "columns": {
++            "radius_config_name": {
++                "type": {
++                "key": {
++                  "type": "string"
++                },
++                "min": 1,
++                "max": 1
++              }
++            },
++            "server": {
++                "type": {
++                "key": {
++                  "type": "string"
++                },
++                "min": 1,
++                "max": 1
++              }
++            },
++            "ca_cert": {
++                "type": {
++                    "key": {
++                        "type": "string",
++                        "minLength": 1,
++                        "maxLength": 256
++                    },
++                    "min": 0,
++                    "max": 1
++                }
++              },
++            "client_cert": {
++                "type": {
++                    "key": {
++                        "type": "string",
++                        "minLength": 1,
++                        "maxLength": 256
++                    },
++                    "min": 0,
++                    "max": 1
++                }
++              },
++            "client_key": {
++                "type": {
++                    "key": {
++                        "type": "string",
++                        "minLength": 1,
++                        "maxLength": 256
++                    },
++                    "min": 0,
++                    "max": 1
++                }
++              },
++            "passpharase": {
++                "type": {
++                    "key": {
++                        "type": "string",
++                        "minLength": 0,
++                        "maxLength": 128
++                    },
++                    "min": 0,
++                    "max": 1
++                }
++              }
++       },
++      "isRoot": true
++    },
++    "realm_config": {
++        "columns": {
++            "realm_config_name": {
++                "type": {
++                "key": {
++                  "type": "string"
++                },
++                "min": 1,
++                "max": 1
++              }
++            },
++            "realm": {
++                "type": {
++                    "key": {
++                        "type": "string",
++                        "minLength": 1,
++                        "maxLength": 256
++                    },
++                    "min": 0,
++                    "max": 1
++                }
++              },
++            "server": {
++              "type": {
++                "key": {
++                  "type": "uuid",
++                  "refTable": "radius_config",
++                  "refType": "weak"
++                },
++                "min": 1,
++                "max": 1
++              }
++            }
++         },
++        "isRoot": true
+     }
+   }
+ }
