@@ -60,8 +60,6 @@ int get_current_ip(char *ip, char *iface) {
 	return 0;
 }
 
-
-
 static int apc_check_neighbor_list(u32 Ip, u8 * Mac, int CheckForMissing )
 {
 	int i;
@@ -212,7 +210,6 @@ void apc_send_hello(struct apc_iface * ifa, int kind )
 
 	interap_send(IAC_APC_ELECTION_PORT, dst_ip, &ps , length);
 }
-
 
 void apc_receive_hello(unsigned char *pkt, struct apc_iface *ifa,
                         struct apc_neighbor *n, ip_addr faddr,

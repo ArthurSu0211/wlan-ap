@@ -120,6 +120,7 @@ enum {
 	WIF_ATTR_DVLAN_NAMING,
 	WIF_ATTR_DVLAN_BRIDGE,
 	WIF_ATTR_MIN_HW_MODE,
+	WIF_ATTR_RADPROXY,
 	__WIF_ATTR_MAX,
 };
 
@@ -202,6 +203,7 @@ static const struct blobmsg_policy wifi_iface_policy[__WIF_ATTR_MAX] = {
 	[WIF_ATTR_DVLAN_NAMING] = { .name = "vlan_naming", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_DVLAN_BRIDGE] = { .name = "vlan_bridge", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_MIN_HW_MODE] = { .name = "min_hw_mode", BLOBMSG_TYPE_STRING },
+	[WIF_ATTR_RADPROXY] = { .name = "radproxy", BLOBMSG_TYPE_STRING },
 };
 
 const struct uci_blob_param_list wifi_iface_param = {
@@ -292,6 +294,95 @@ static struct vif_crypto {
 	{ "wpa3", OVSDB_SECURITY_ENCRYPTION_WPA3_EAP, OVSDB_SECURITY_MODE_WPA3, 1 },
 	{ "wpa3-mixed", OVSDB_SECURITY_ENCRYPTION_WPA3_EAP, OVSDB_SECURITY_MODE_MIXED, 1 },
 };
+
+extern ovsdb_table_t table_APC_State;
+extern json_t* ovsdb_table_where(ovsdb_table_t *table, void *record);
+
+static int vif_config_proxy_security_set(struct blob_buf *b,
+				    const struct schema_Wifi_VIF_Config *vconf)
+{
+	const char *encryption = SCHEMA_KEY_VAL(vconf->security, SCHEMA_CONSTS_SECURITY_ENCRYPT);
+	const char *mode = SCHEMA_KEY_VAL(vconf->security, SCHEMA_CONSTS_SECURITY_MODE);
+	unsigned int i;
+	unsigned int acct_interval;
+	const char *auth_server, *auth_port, *auth_secret, *security_key, *acct_server;
+	struct schema_APC_State apc_conf;
+	const char *local_server = "127.0.0.1";
+
+    	json_t *where = ovsdb_table_where(&table_APC_State, &apc_conf);
+	if (false == ovsdb_table_select_one_where(&table_APC_State,
+			where, &apc_conf)) {
+		LOG(INFO, "APC_State read failed");
+		return -1;
+	}
+	if (!strncmp(apc_conf.mode, "DR", 2)) {
+		auth_server = local_server;
+		acct_server = local_server;
+	} else if (!strncmp(apc_conf.mode, "SR", 2) ||
+		   !strncmp(apc_conf.mode, "BDR", 2)) {
+		auth_server = apc_conf.dr_addr;
+		acct_server = apc_conf.dr_addr;
+	}
+	else {
+		auth_server = local_server;
+		acct_server = local_server;
+	}
+
+	if (!strcmp(encryption, OVSDB_SECURITY_ENCRYPTION_OPEN) || !mode)
+		goto open;
+	for (i = 0; i < ARRAY_SIZE(vif_crypto); i++) {
+		if (strcmp(vif_crypto[i].encryption, encryption))
+			continue;
+		if (strcmp(vif_crypto[i].mode, mode))
+			continue;
+		blobmsg_add_string(b, "encryption", vif_crypto[i].uci);
+
+		if (!strcmp(mode, OVSDB_SECURITY_MODE_WPA3)) {
+			blobmsg_add_string(b, "ieee80211w", "2");
+		} else {
+			blobmsg_add_string(b, "ieee80211w", "1");
+		}
+
+		if (vif_crypto[i].enterprise) {
+			acct_interval = 0;
+			auth_port   = SCHEMA_KEY_VAL(vconf->security, SCHEMA_CONSTS_SECURITY_RADIUS_PORT);
+			auth_secret = SCHEMA_KEY_VAL(vconf->security, SCHEMA_CONSTS_SECURITY_RADIUS_SECRET);
+			LOGT("%s: Server IP %s port %s secret %s", vconf->if_name, auth_server, auth_port, auth_secret);
+			if (!auth_server[0] || !auth_port[0] || !auth_secret[0]) {
+				LOGI("%s: Incomplete RADIUS security config - SSID not created", vconf->if_name);
+				return -1;
+			}
+			blobmsg_add_string(b, "auth_server", auth_server);
+			blobmsg_add_string(b, "auth_port",   auth_port );
+			blobmsg_add_string(b, "auth_secret", auth_secret );
+			blobmsg_add_string(b, "acct_server", acct_server);
+			blobmsg_add_string(b, "acct_port",
+					   SCHEMA_KEY_VAL(vconf->security, OVSDB_SECURITY_RADIUS_ACCT_PORT));
+			blobmsg_add_string(b, "acct_secret",
+					   SCHEMA_KEY_VAL(vconf->security, OVSDB_SECURITY_RADIUS_ACCT_SECRET));
+			blobmsg_add_bool(b, "request_cui", 1);
+			acct_interval = atoi(SCHEMA_KEY_VAL(vconf->security, OVSDB_SECURITY_RADIUS_ACCT_INTERVAL));
+
+			if (acct_interval <= 600 && acct_interval >= 60 )
+			{
+				blobmsg_add_u32(b, "acct_interval", acct_interval);
+			}
+		} else {
+			security_key = SCHEMA_KEY_VAL(vconf->security, SCHEMA_CONSTS_SECURITY_KEY);
+			if (security_key == NULL) {
+				LOGW("%s: Incomplete security config - SSID not created", vconf->if_name);
+				return -1;
+			}
+			blobmsg_add_string(b, "key", security_key);
+		}
+	}
+	return 0;
+open:
+	blobmsg_add_string(b, "encryption", "none");
+	blobmsg_add_string(b, "key", "");
+	blobmsg_add_string(b, "ieee80211w", "0");
+	return 0;
+}
 
 static int vif_config_security_set(struct blob_buf *b,
 				    const struct schema_Wifi_VIF_Config *vconf)
@@ -438,7 +529,7 @@ out_none:
 
 /* Custom options table */
 #define SCHEMA_CUSTOM_OPT_SZ            20
-#define SCHEMA_CUSTOM_OPTS_MAX          11
+#define SCHEMA_CUSTOM_OPTS_MAX          12
 
 const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 {
@@ -453,7 +544,40 @@ const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 	SCHEMA_CONSTS_RADIUS_OPER_NAME,
 	SCHEMA_CONSTS_RADIUS_NAS_ID,
 	SCHEMA_CONSTS_DYNAMIC_VLAN,
+	SCHEMA_CONSTS_RADPROXY,
 };
+
+extern unsigned int radproxy_apc;
+
+static bool vif_config_custom_opt_get_proxy(
+                                      const struct schema_Wifi_VIF_Config *vconf)
+{
+	int i;
+	const char *opt;
+	const char *val;
+	char value[20];
+
+	for (i = 0; i < SCHEMA_CUSTOM_OPTS_MAX; i++) {
+		opt = custom_options_table[i];
+		val = SCHEMA_KEY_VAL(vconf->custom_options, opt);
+		if (!val)
+			strncpy(value, "0", 20);
+		else
+			strncpy(value, val, 20);
+
+		if (strcmp(opt, "radproxy") == 0) {
+			if (strcmp(value, "1") == 0) {
+				radproxy_apc |= 1;
+				return true;
+			}
+			else {
+				radproxy_apc |= 0;
+				return false;
+			}
+		}
+	}
+	return false;
+}
 
 static void vif_config_custom_opt_set(struct blob_buf *b, struct blob_buf *del,
                                       const struct schema_Wifi_VIF_Config *vconf)
@@ -531,7 +655,8 @@ static void vif_config_custom_opt_set(struct blob_buf *b, struct blob_buf *del,
 				strncpy(value, "br-wan.", 20);
 				blobmsg_add_string(del, "vlan_bridge", value);
 			}
-		}
+		} else if (strcmp(opt, "radproxy") == 0)
+			blobmsg_add_string(b, "radproxy", value);
 	}
 }
 
@@ -658,7 +783,15 @@ static void vif_state_custom_options_get(struct schema_Wifi_VIF_State *vstate,
 							custom_options_table[i],
 							buf);
 			}
+		} else if (strcmp(opt, "radproxy") == 0) {
+			if (tb[WIF_ATTR_RADPROXY]) {
+				buf = blobmsg_get_string(tb[WIF_ATTR_RADPROXY]);
+				set_custom_option_state(vstate, &index,
+							custom_options_table[i],
+							buf);
+			}
 		}
+
 	}
 }
 
@@ -1350,9 +1483,16 @@ static int ap_vif_config_set(const struct schema_Wifi_Radio_Config *rconf,
 	blobmsg_add_bool(&b, "wpa_disable_eapol_key_retries", 1);
 	blobmsg_add_u32(&b, "channel", rconf->channel);
 
-	if (vif_config_security_set(&b, vconf)) {
-                return -1;
-        }
+	if (vif_config_custom_opt_get_proxy(vconf)) {
+
+		LOGN("%s: Apply Proxy Security Settings", vconf->if_name);
+		if (vif_config_proxy_security_set(&b, vconf))
+			return -1;
+
+	} else {
+		if (vif_config_security_set(&b, vconf))
+                	return -1;
+	}
 
 	if (changed->custom_options)
 		vif_config_custom_opt_set(&b, &del, vconf);
