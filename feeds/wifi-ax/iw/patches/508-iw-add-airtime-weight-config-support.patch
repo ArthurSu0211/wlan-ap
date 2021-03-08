@@ -1,6 +1,6 @@
 --- a/station.c
 +++ b/station.c
-@@ -321,9 +321,10 @@ static int print_sta_handler(struct nl_m
+@@ -325,9 +325,10 @@ static int print_sta_handler(struct nl_m
  		[NL80211_STA_INFO_TID_STATS] = { .type = NLA_NESTED },
  		[NL80211_STA_INFO_BSS_PARAM] = { .type = NLA_NESTED },
  		[NL80211_STA_INFO_RX_DURATION] = { .type = NLA_U64 },
@@ -9,10 +9,10 @@
  		[NL80211_STA_INFO_ACK_SIGNAL_AVG] = { .type = NLA_U8 },
 +		[NL80211_STA_INFO_TX_DURATION] = {.type = NLA_U64},
 +		[NL80211_STA_INFO_AIRTIME_WEIGHT] = {.type = NLA_U16},
- 	};
- 	char *chain;
- 
-@@ -414,10 +415,6 @@ static int print_sta_handler(struct nl_m
+ 		[NL80211_STA_INFO_AIRTIME_LINK_METRIC] = { .type = NLA_U32 },
+ 		[NL80211_STA_INFO_CONNECTED_TO_AS] = { .type = NLA_FLAG },
+ 		[NL80211_STA_INFO_CONNECTED_TO_GATE] = { .type = NLA_FLAG },
+@@ -427,10 +428,6 @@ static int print_sta_handler(struct nl_m
  		printf("\n\ttx bitrate:\t%s", buf);
  	}
  
@@ -23,7 +23,7 @@
  	if (sinfo[NL80211_STA_INFO_RX_BITRATE]) {
  		char buf[100];
  
-@@ -437,6 +434,10 @@ static int print_sta_handler(struct nl_m
+@@ -450,6 +447,10 @@ static int print_sta_handler(struct nl_m
  		printf("\n\tavg ack signal:\t%d dBm",
  			(int8_t)nla_get_u8(sinfo[NL80211_STA_INFO_ACK_SIGNAL_AVG]));
  
@@ -34,7 +34,7 @@
  	if (sinfo[NL80211_STA_INFO_AIRTIME_WEIGHT]) {
  		printf("\n\tairtime weight: %d", nla_get_u16(sinfo[NL80211_STA_INFO_AIRTIME_WEIGHT]));
  	}
-@@ -671,6 +672,7 @@ COMMAND(station, del, "<MAC address> [su
+@@ -712,6 +713,7 @@ COMMAND(station, del, "<MAC address> [su
  
  static const struct cmd *station_set_plink;
  static const struct cmd *station_set_vlan;
@@ -42,7 +42,7 @@
  static const struct cmd *station_set_mesh_power_mode;
  static const struct cmd *station_set_airtime_weight;
  static const struct cmd *station_set_txpwr;
-@@ -683,6 +685,8 @@ static const struct cmd *select_station_
+@@ -724,6 +726,8 @@ static const struct cmd *select_station_
  		return station_set_plink;
  	if (strcmp(argv[1], "vlan") == 0)
  		return station_set_vlan;
@@ -51,7 +51,7 @@
  	if (strcmp(argv[1], "mesh_power_mode") == 0)
  		return station_set_mesh_power_mode;
  	if (strcmp(argv[1], "airtime_weight") == 0)
-@@ -788,6 +792,53 @@ COMMAND_ALIAS(station, set, "<MAC addres
+@@ -829,6 +833,53 @@ COMMAND_ALIAS(station, set, "<MAC addres
  	"Set an AP VLAN for this station.",
  	select_station_cmd, station_set_vlan);
  

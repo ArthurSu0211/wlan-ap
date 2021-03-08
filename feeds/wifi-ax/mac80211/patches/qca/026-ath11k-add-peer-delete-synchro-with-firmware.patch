@@ -28,73 +28,7 @@
  						   &arvif_iter);
  	if (!arvif_iter.arvif) {
  		ath11k_warn(ar->ab, "No VIF found for vdev %d\n", vdev_id);
-@@ -578,6 +578,36 @@ struct ath11k *ath11k_mac_get_ar_vdev_st
- 	return NULL;
- }
- 
-+struct ath11k *ath11k_mac_get_ar_peer_delete_status(struct ath11k_base *ab, u8 *peer_addr,
-+						    u32 vdev_id)
-+{
-+	int i;
-+	struct ath11k_pdev *pdev;
-+	struct ath11k *ar;
-+	struct ath11k_vif *arvif;
-+
-+	for (i = 0; i < ab->num_radios; i++) {
-+		pdev = rcu_dereference(ab->pdevs_active[i]);
-+		if (pdev && pdev->ar) {
-+			ar = pdev->ar;
-+
-+			spin_lock_bh(&ar->data_lock);
-+			if (ether_addr_equal(ar->mac_addr, peer_addr)) {
-+				spin_unlock_bh(&ar->data_lock);
-+				return ar;
-+			} else {
-+				arvif = ath11k_mac_get_arvif(pdev->ar, vdev_id);
-+                        	if (arvif) {
-+					spin_unlock_bh(&ar->data_lock);
-+                                	return arvif->ar;
-+				}
-+			}
-+			spin_unlock_bh(&ar->data_lock);
-+		}
-+	}
-+	return NULL;
-+}
-+
- static void ath11k_pdev_caps_update(struct ath11k *ar)
- {
- 	struct ath11k_base *ab = ar->ab;
-@@ -772,6 +802,28 @@ static int ath11k_monitor_vdev_up(struct
- 	return 0;
- }
- 
-+int ath11k_wait_for_peer_delete_done(struct ath11k *ar, u32 vdev_id,
-+					    const u8 *addr)
-+{
-+	int ret;
-+	unsigned long time_left;
-+
-+	ret = ath11k_wait_for_peer_deleted(ar, vdev_id, addr);
-+	if(ret) {
-+		ath11k_warn(ar->ab, "failed wait for peer deleted");
-+		return ret;
-+	}
-+
-+	time_left = wait_for_completion_timeout(&ar->peer_delete_done,
-+						3 * HZ);
-+	if(time_left == 0) {
-+		ath11k_warn(ar->ab, "Timeout in receiving peer delete response\n");
-+		return -ETIMEDOUT;
-+	}
-+
-+	return 0;
-+}
-+
- static int ath11k_mac_op_config(struct ieee80211_hw *hw, u32 changed)
- {
- 	struct ath11k *ar = hw->priv;
-@@ -4638,8 +4690,22 @@ static int ath11k_mac_op_add_interface(s
+@@ -4638,8 +4638,22 @@ static int ath11k_mac_op_add_interface(s
  
  err_peer_del:
  	if (arvif->vdev_type == WMI_VDEV_TYPE_AP) {
@@ -118,7 +52,7 @@
  	}
  
  err_vdev_del:
-@@ -6534,6 +6600,7 @@ int ath11k_mac_allocate(struct ath11k_ba
+@@ -6534,6 +6548,7 @@ int ath11k_mac_allocate(struct ath11k_ba
  		init_completion(&ar->vdev_setup_done);
  		init_completion(&ar->vdev_delete_done);
  		init_completion(&ar->peer_assoc_done);

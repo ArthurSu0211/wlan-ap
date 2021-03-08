@@ -20,20 +20,9 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
  wpa_supplicant/op_classes.c     |  8 ++++----
  4 files changed, 15 insertions(+), 14 deletions(-)
 
---- a/src/common/hw_features_common.c
-+++ b/src/common/hw_features_common.c
-@@ -415,7 +415,7 @@ int hostapd_set_freq_params(struct hosta
- 			return -1;
- 		}
- 
--		if (center_idx_to_bw_6ghz(channel) != 0) {
-+		if (center_idx_to_bw_6ghz(channel) < 0) {
- 			wpa_printf(MSG_ERROR,
- 				   "Invalid control channel for 6 GHz band");
- 			return -1;
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
-@@ -10654,7 +10654,8 @@ static int add_acs_ch_list(struct nl_msg
+@@ -10659,7 +10659,8 @@ static int add_acs_ch_list(struct nl_msg
  		 * compatibility.
  		 */
  		if (!(freq >= 2412 && freq <= 2484) &&
@@ -204,11 +193,9 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
  		}
  
  		ret = hostapd_select_hw_mode(iface);
-diff --git a/src/ap/beacon.c b/src/ap/beacon.c
-index 668d9094e28d..ff17b2f00e85 100644
 --- a/src/ap/beacon.c
 +++ b/src/ap/beacon.c
-@@ -486,8 +486,10 @@ static u8 * hostapd_gen_probe_resp(struct hostapd_data *hapd,
+@@ -481,8 +481,10 @@ static u8 * hostapd_gen_probe_resp(struc
  
  	resp->frame_control = IEEE80211_FC(WLAN_FC_TYPE_MGMT,
  					   WLAN_FC_STYPE_PROBE_RESP);
@@ -220,11 +207,9 @@ index 668d9094e28d..ff17b2f00e85 100644
  	os_memcpy(resp->sa, hapd->own_addr, ETH_ALEN);
  
  	os_memcpy(resp->bssid, hapd->own_addr, ETH_ALEN);
-diff --git a/wpa_supplicant/mesh.c b/wpa_supplicant/mesh.c
-index c1630d09a254..56f40edc0fdc 100644
 --- a/wpa_supplicant/mesh.c
 +++ b/wpa_supplicant/mesh.c
-@@ -512,6 +512,8 @@ int wpa_supplicant_join_mesh(struct wpa_supplicant *wpa_s,
+@@ -506,6 +506,8 @@ int wpa_supplicant_join_mesh(struct wpa_
  		params->flags |= WPA_DRIVER_MESH_FLAG_SAE_AUTH;
  		params->flags |= WPA_DRIVER_MESH_FLAG_AMPE;
  		wpa_s->conf->user_mpm = 1;

@@ -1,0 +1,92 @@
+From b774f3fddce3f4cb3a2a5399a4365ad22e6c8c6b Mon Sep 17 00:00:00 2001
+From: John Crispin <john@phrozen.org>
+Date: Mon, 8 Mar 2021 12:56:00 +0100
+Subject: [PATCH] ipq807x: update to cs1
+
+Signed-off-by: John Crispin <john@phrozen.org>
+---
+ include/kernel-version.mk                          |  2 +-
+ package/network/services/hostapd/Makefile          |  7 ++++---
+ target/linux/ipq807x/Makefile                      |  2 +-
+ target/linux/ipq807x/config-4.4                    |  1 +
+ target/linux/ipq807x/patches/107-ed2-compile.patch | 12 ------------
+ 5 files changed, 7 insertions(+), 17 deletions(-)
+ delete mode 100644 target/linux/ipq807x/patches/107-ed2-compile.patch
+
+diff --git a/include/kernel-version.mk b/include/kernel-version.mk
+index 52c249ff9f..c2d0eb3281 100644
+--- a/include/kernel-version.mk
++++ b/include/kernel-version.mk
+@@ -9,7 +9,7 @@ endif
+ LINUX_VERSION-4.4 = .60
+ LINUX_VERSION-4.14 = .187
+ 
+-LINUX_KERNEL_HASH-4.4.60 = 2cd8df6f1ac6a5329c5a286ec9b5956215977221a1b731597ed169fff74a9659
++LINUX_KERNEL_HASH-4.4.60 = 10be893d8d1c25a144c09e39b64a0b65a6a71f8393312ecb1333524b0a90e0b2
+ LINUX_KERNEL_HASH-4.14.187 = 5b223475eaeea196aa7e127d3f253bca5c35d8afdc72ca75230ce1ecdd1454bd
+ 
+ remove_uri_prefix=$(subst git://,,$(subst http://,,$(subst https://,,$(1))))
+diff --git a/package/network/services/hostapd/Makefile b/package/network/services/hostapd/Makefile
+index 35ce85b3be..3853b69ebf 100644
+--- a/package/network/services/hostapd/Makefile
++++ b/package/network/services/hostapd/Makefile
+@@ -11,9 +11,10 @@ PKG_RELEASE:=4
+ 
+ PKG_SOURCE_URL:=http://w1.fi/hostap.git
+ PKG_SOURCE_PROTO:=git
+-PKG_SOURCE_DATE:=2019-08-08
+-PKG_SOURCE_VERSION:=ca8c2bd28ad53f431d6ee60ef754e98cfdb4c17b
+-PKG_MIRROR_HASH:=9d9f1c60afa5324ee17219bd3ec61c1a6fa4043b4187da9bb44e59025d3ed31d
++PKG_SOURCE_DATE:=2020-10-14
++PKG_SOURCE_VERSION:=0f07230eb968
++#ca8c2bd28ad53f431d6ee60ef754e98cfdb4c17b
++#PKG_MIRROR_HASH:=9d9f1c60afa5324ee17219bd3ec61c1a6fa4043b4187da9bb44e59025d3ed31d
+ 
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ PKG_LICENSE:=BSD-3-Clause
+diff --git a/target/linux/ipq807x/Makefile b/target/linux/ipq807x/Makefile
+index 90df1f8a9a..94938a53d2 100644
+--- a/target/linux/ipq807x/Makefile
++++ b/target/linux/ipq807x/Makefile
+@@ -9,7 +9,7 @@ KERNELNAME:=Image dtbs
+ CPU_TYPE:=cortex-a7
+ 
+ KERNEL_PATCHVER:=4.4
+-KERNEL_NAME_SUFFIX=-qsdk-10fd7d14853b7020b804acae690c8acec5d954ce
++KERNEL_NAME_SUFFIX=-qsdk-ec86312aff11fc666323aca4de23e6caf75f7a04
+ 
+ include $(INCLUDE_DIR)/target.mk
+ DEFAULT_PACKAGES += kmod-qca-nss-dp kmod-qca-ssdk swconfig \
+diff --git a/target/linux/ipq807x/config-4.4 b/target/linux/ipq807x/config-4.4
+index f5499ae131..ab2b8ff7f8 100644
+--- a/target/linux/ipq807x/config-4.4
++++ b/target/linux/ipq807x/config-4.4
+@@ -200,6 +200,7 @@ CONFIG_DEBUG_GPIO=y
+ CONFIG_DEBUG_LL_INCLUDE="mach/debug-macro.S"
+ # CONFIG_DEBUG_UART_8250 is not set
+ # CONFIG_DEBUG_USER is not set
++# CONFIG_DEBUG_MEM_USAGE is not set
+ CONFIG_DECOMPRESS_GZIP=y
+ CONFIG_DEVMEM=y
+ # CONFIG_DIAG_OVER_USB is not set
+diff --git a/target/linux/ipq807x/patches/107-ed2-compile.patch b/target/linux/ipq807x/patches/107-ed2-compile.patch
+deleted file mode 100644
+index 8122f9ee7d..0000000000
+--- a/target/linux/ipq807x/patches/107-ed2-compile.patch
++++ /dev/null
+@@ -1,12 +0,0 @@
+-Index: linux-4.4.60-qsdk-10fd7d14853b7020b804acae690c8acec5d954ce/include/linux/qcom_scm.h
+-===================================================================
+---- linux-4.4.60-qsdk-10fd7d14853b7020b804acae690c8acec5d954ce.orig/include/linux/qcom_scm.h
+-+++ linux-4.4.60-qsdk-10fd7d14853b7020b804acae690c8acec5d954ce/include/linux/qcom_scm.h
+-@@ -14,6 +14,7 @@
+- #define __QCOM_SCM_H
+- 
+- #include <linux/scatterlist.h>
+-+#include <linux/device.h>
+- 
+- #define QCOM_KERNEL_AUTH_CMD		0x15
+- #define QCOM_SCM_PAS_AUTH_DEBUG_RESET_CMD	0x14
+-- 
+2.25.1
+

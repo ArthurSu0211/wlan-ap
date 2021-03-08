@@ -40,11 +40,9 @@ Signed-off-by: Jaya Surya Mathavan <jmathava@codeaurora.org>
  drivers/net/wireless/ath/ath11k/qmi.h   |  39 ++-
  5 files changed, 560 insertions(+), 31 deletions(-)
 
-Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
-===================================================================
---- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/core.h
-+++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
-@@ -782,6 +782,7 @@ struct ath11k_base {
+--- a/drivers/net/wireless/ath/ath11k/core.h
++++ b/drivers/net/wireless/ath/ath11k/core.h
+@@ -783,6 +783,7 @@ struct ath11k_base {
  
  	struct ath11k_hw_params hw_params;
  	struct ath11k_bus_params bus_params;
@@ -52,7 +50,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  
  	const struct firmware *cal_file;
  
-@@ -984,6 +985,8 @@ void ath11k_core_free_bdf(struct ath11k_
+@@ -985,6 +986,8 @@ void ath11k_core_free_bdf(struct ath11k_
  
  void ath11k_core_halt(struct ath11k *ar);
  
@@ -61,10 +59,8 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  const struct firmware *ath11k_core_firmware_request(struct ath11k_base *ab,
  						    const char *filename);
  
-Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/debug.c
-===================================================================
---- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/debug.c
-+++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/debug.c
+--- a/drivers/net/wireless/ath/ath11k/debug.c
++++ b/drivers/net/wireless/ath/ath11k/debug.c
 @@ -839,6 +839,79 @@ static const struct file_operations fops
  	.llseek = default_llseek,
  };
@@ -155,10 +151,8 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  	debugfs_create_file("soc_dp_stats", 0600, ab->debugfs_soc, ab,
  			    &fops_soc_dp_stats);
  
-Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
-===================================================================
---- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/qmi.c
-+++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
+--- a/drivers/net/wireless/ath/ath11k/qmi.c
++++ b/drivers/net/wireless/ath/ath11k/qmi.c
 @@ -10,6 +10,7 @@
  #include <linux/of.h>
  #include <linux/firmware.h>
@@ -178,7 +172,129 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  static struct qmi_elem_info qmi_wlanfw_qdss_trace_config_download_req_msg_v01_ei[] = {
  	{
  		.data_type	= QMI_OPT_FLAG,
-@@ -1870,6 +1867,85 @@ static struct qmi_elem_info qmi_wlanfw_m
+@@ -453,6 +450,24 @@ static struct qmi_elem_info qmi_wlanfw_h
+ 					   mem_cfg_mode),
+ 	},
+ 	{
++		.data_type      = QMI_OPT_FLAG,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1D,
++		.offset         = offsetof(struct qmi_wlanfw_host_cap_req_msg_v01,
++					   cal_duration_valid),
++	},
++        {
++		.data_type      = QMI_UNSIGNED_2_BYTE,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u16),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1D,
++		.offset         = offsetof(struct qmi_wlanfw_host_cap_req_msg_v01,
++					   cal_duration),
++	},
++	{
+ 		.data_type	= QMI_EOTI,
+ 		.array_type	= NO_ARRAY,
+ 		.tlv_type	= QMI_COMMON_TLV_TYPE,
+@@ -717,20 +732,92 @@ static struct qmi_elem_info qmi_wlanfw_i
+ 		.elem_len       = 1,
+ 		.elem_size      = sizeof(u8),
+ 		.array_type     = NO_ARRAY,
+-		.tlv_type       = 0x20,
++		.tlv_type       = 0x1C,
+ 		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
+-					   m3_dump_upload_req_enable_valid),
++		                           qdss_trace_req_mem_enable_valid),
+ 	},
+ 	{
+ 		.data_type      = QMI_UNSIGNED_1_BYTE,
+ 		.elem_len       = 1,
+ 		.elem_size      = sizeof(u8),
+ 		.array_type     = NO_ARRAY,
+-		.tlv_type       = 0x20,
++		.tlv_type       = 0x1C,
+ 		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
+-					   m3_dump_upload_req_enable),
++		                           qdss_trace_req_mem_enable),
+ 	},
+ 	{
++		.data_type      = QMI_OPT_FLAG,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1D,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           qdss_trace_save_enable_valid),
++	},
++	{
++		.data_type      = QMI_UNSIGNED_1_BYTE,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1D,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           qdss_trace_save_enable),
++	},
++	{
++		.data_type      = QMI_OPT_FLAG,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1E,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           qdss_trace_free_enable_valid),
++	},
++	{
++		.data_type      = QMI_UNSIGNED_1_BYTE,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1E,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           qdss_trace_free_enable),
++	},
++	{
++		.data_type      = QMI_OPT_FLAG,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1F,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           respond_get_info_enable_valid),
++	},
++	{
++		.data_type      = QMI_UNSIGNED_1_BYTE,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x1F,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++		                           respond_get_info_enable),
++	},
++	{
++                .data_type      = QMI_OPT_FLAG,
++                .elem_len       = 1,
++                .elem_size      = sizeof(u8),
++                .array_type     = NO_ARRAY,
++                .tlv_type       = 0x20,
++                .offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++                                           m3_dump_upload_req_enable_valid),
++        },
++        {
++                .data_type      = QMI_UNSIGNED_1_BYTE,
++                .elem_len       = 1,
++                .elem_size      = sizeof(u8),
++                .array_type     = NO_ARRAY,
++                .tlv_type       = 0x20,
++                .offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++                                           m3_dump_upload_req_enable),
++        },
++	{
+ 		.data_type	= QMI_EOTI,
+ 		.array_type	= NO_ARRAY,
+ 		.tlv_type	= QMI_COMMON_TLV_TYPE,
+@@ -1888,6 +1975,85 @@ static struct qmi_elem_info qmi_wlanfw_m
  	},
  };
  
@@ -264,7 +380,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  int wlfw_send_qdss_trace_config_download_req(struct ath11k_base *ab,
  					     const u8 *buffer, unsigned int file_len)
  {
-@@ -1951,19 +2027,19 @@ int ath11k_send_qdss_trace_mode_req(stru
+@@ -1969,19 +2135,19 @@ int ath11k_send_qdss_trace_mode_req(stru
  	req.mode_valid = 1;
  	req.mode = mode;
  	req.option_valid = 1;
@@ -288,7 +404,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  		goto out;
  	}
  
-@@ -1981,12 +2057,6 @@ out:
+@@ -1999,12 +2165,6 @@ out:
  	return ret;
  }
  
@@ -301,7 +417,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  static int ath11k_qmi_send_qdss_config(struct ath11k_base *ab)
  {
  	struct device *dev = ab->dev;
-@@ -2251,6 +2321,11 @@ static void ath11k_qmi_free_target_mem_c
+@@ -2269,6 +2429,11 @@ static void ath11k_qmi_free_target_mem_c
  		}
  		ab->qmi.target_mem[i].vaddr = NULL;
  	}
@@ -313,7 +429,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  }
  
  static int ath11k_qmi_alloc_target_mem_chunk(struct ath11k_base *ab)
-@@ -2867,21 +2942,12 @@ int ath11k_config_qdss(struct ath11k_bas
+@@ -2887,21 +3052,12 @@ int ath11k_config_qdss(struct ath11k_bas
  	if (ab->fw_mode == ATH11K_FIRMWARE_MODE_FTM)
  		return 0;
  
@@ -341,7 +457,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  }
  
  int ath11k_qmi_firmware_start(struct ath11k_base *ab,
-@@ -3069,6 +3135,23 @@ send_resp:
+@@ -3089,6 +3245,23 @@ send_resp:
  	return;
  }
  
@@ -365,7 +481,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  static int
  ath11k_qmi_driver_event_post(struct ath11k_qmi *qmi,
  			     enum ath11k_qmi_event_type type,
-@@ -3122,6 +3205,173 @@ static void ath11k_qmi_event_mem_request
+@@ -3142,6 +3315,173 @@ static void ath11k_qmi_event_mem_request
  	}
  }
  
@@ -539,7 +655,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  static void ath11k_qmi_event_load_bdf(struct ath11k_qmi *qmi)
  {
  	struct ath11k_base *ab = qmi->ab;
-@@ -3252,6 +3502,83 @@ static void ath11k_qmi_m3_dump_upload_re
+@@ -3272,6 +3612,83 @@ static void ath11k_qmi_m3_dump_upload_re
  				     event_data);
  }
  
@@ -623,7 +739,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  static const struct qmi_msg_handler ath11k_qmi_msg_handlers[] = {
  	{
  		.type = QMI_INDICATION,
-@@ -3290,6 +3617,23 @@ static const struct qmi_msg_handler ath1
+@@ -3310,6 +3727,23 @@ static const struct qmi_msg_handler ath1
  			sizeof(struct qmi_wlanfw_m3_dump_upload_req_ind_msg_v01),
  		.fn = ath11k_qmi_m3_dump_upload_req_ind_cb,
  	},
@@ -647,7 +763,7 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  };
  
  static int ath11k_qmi_ops_new_server(struct qmi_handle *qmi_hdl,
-@@ -3383,6 +3727,12 @@ static void ath11k_qmi_driver_event_work
+@@ -3403,6 +3837,12 @@ static void ath11k_qmi_driver_event_work
  		case ATH11K_QMI_EVENT_M3_DUMP_UPLOAD_REQ:
  			ath11k_qmi_event_m3_dump_upload_req(qmi, event->data);
  			break;
@@ -660,10 +776,8 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  		default:
  			ath11k_warn(ab, "invalid event type: %d", event->type);
  			break;
-Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.h
-===================================================================
---- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/qmi.h
-+++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.h
+--- a/drivers/net/wireless/ath/ath11k/qmi.h
++++ b/drivers/net/wireless/ath/ath11k/qmi.h
 @@ -38,6 +38,9 @@
  #define QMI_WLFW_FW_READY_IND_V01		0x0038
  #define QMI_WLFW_M3_DUMP_UPLOAD_DONE_REQ_V01	0x004E
@@ -683,6 +797,15 @@ Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/
  	ATH11K_QMI_EVENT_MAX,
  };
  
+@@ -109,7 +114,7 @@ struct target_mem_chunk {
+ 	u32 size;
+ 	u32 type;
+ 	dma_addr_t paddr;
+-	u32 *vaddr;
++	void *vaddr;
+ };
+ 
+ struct target_info {
 @@ -141,6 +146,8 @@ struct ath11k_qmi {
  	struct ath11k_qmi_ce_cfg ce_cfg;
  	struct target_mem_chunk target_mem[ATH11K_QMI_WLANFW_MAX_NUM_MEM_SEG_V01];

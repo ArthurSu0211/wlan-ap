@@ -13,11 +13,9 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
  util.c | 10 +++++-----
  1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/util.c b/util.c
-index 8c63ae49ad8d..37c1447bb877 100644
 --- a/util.c
 +++ b/util.c
-@@ -1228,20 +1228,20 @@ void iw_hexdump(const char *prefix, const __u8 *buf, size_t size)
+@@ -1235,20 +1235,20 @@ void iw_hexdump(const char *prefix, cons
  int get_cf1(const struct chanmode *chanmode, unsigned long freq)
  {
  	unsigned int cf1 = freq, j;
@@ -43,6 +41,3 @@ index 8c63ae49ad8d..37c1447bb877 100644
  		break;
  	default:
  		cf1 = freq + chanmode->freq1_diff;
--- 
-2.17.1
-

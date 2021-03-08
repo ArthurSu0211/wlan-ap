@@ -35,7 +35,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  static const struct ath11k_hw_params ath11k_hw_params[] = {
 --- a/drivers/net/wireless/ath/ath11k/qmi.c
 +++ b/drivers/net/wireless/ath/ath11k/qmi.c
-@@ -2345,6 +2345,9 @@ static int ath11k_qmi_alloc_target_mem_c
+@@ -2350,6 +2350,9 @@ static int ath11k_qmi_alloc_target_mem_c
  	return 0;
  }
  
@@ -45,7 +45,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  static int ath11k_qmi_assign_target_mem_chunk(struct ath11k_base *ab)
  {
  	struct device *dev = ab->dev;
-@@ -2354,7 +2357,15 @@ static int ath11k_qmi_assign_target_mem_
+@@ -2359,7 +2362,15 @@ static int ath11k_qmi_assign_target_mem_
  	for (i = 0, idx = 0; i < ab->qmi.mem_seg_count; i++) {
  		switch (ab->qmi.target_mem[i].type) {
  		case HOST_DDR_REGION_TYPE:
@@ -62,7 +62,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  				ath11k_warn(ab, "qmi fail to get base-addr in dt\n");
  				return -EINVAL;
  			}
-@@ -2378,7 +2389,10 @@ static int ath11k_qmi_assign_target_mem_
+@@ -2383,7 +2394,10 @@ static int ath11k_qmi_assign_target_mem_
  			if (ab->qmi.target_mem[i].size > ab->hw_params.fw.cal_size)
  				ath11k_warn(ab, "qmi mem size is low to load caldata\n");
  
@@ -74,22 +74,23 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  				ath11k_warn(ab, "qmi fail to get caldb-addr in dt\n");
  
  			if (ab->bus_params.fixed_bdf_addr && ab->enable_cold_boot_cal) {
-@@ -2409,10 +2423,16 @@ static int ath11k_qmi_assign_target_mem_
+@@ -2416,10 +2430,15 @@ static int ath11k_qmi_assign_target_mem_
  
  			ab->qmi.target_mem[idx].size = ab->qmi.target_mem[i].size;
  			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
 -			if (of_property_read_u32(dev->of_node, "m3-dump-addr", &addr))
+-				ab->qmi.target_mem[idx].paddr = ab->hw_params.m3_addr;
+-			else
+-				ab->qmi.target_mem[idx].paddr =  (phys_addr_t)addr;
 +
 +			if (ath11k_host_ddr_addr) {
 +				addr = ath11k_host_ddr_addr +
 +					ATH11K_HOST_DDR_CALDB_OFFSET +
 +					ATH11K_HOST_DDR_QDSS_OFFSET;
 +			} else if (of_property_read_u32(dev->of_node, "m3-dump-addr", &addr)) {
- 				ab->qmi.target_mem[idx].paddr = ab->hw_params.m3_addr;
--			else
-+			} else {
- 				ab->qmi.target_mem[idx].paddr =  (phys_addr_t)addr;
++				addr = ab->hw_params.m3_addr;
 +			}
++			ab->qmi.target_mem[idx].paddr =  (phys_addr_t)addr;
  
  				ab->qmi.target_mem[idx].vaddr =
  					ioremap(ab->qmi.target_mem[idx].paddr,
@@ -103,3 +104,16 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  
  enum ath11k_target_mem_mode {
  	ATH11K_QMI_TARGET_MEM_MODE_DEFAULT = 0,
+--- a/drivers/net/wireless/ath/ath11k/pci.c
++++ b/drivers/net/wireless/ath/ath11k/pci.c
+@@ -1026,8 +1026,8 @@ static int ath11k_pci_probe(struct pci_d
+ 	 * allocate memory for FW in DDR, set fixed_mem_region to true for
+ 	 * these pltforms supports reserved memory.
+ 	 */
+-	ret = of_property_read_u32(ab->dev->of_node, "base-addr", &addr);
+-	if (ret == 0)
++	if (ath11k_host_ddr_addr ||
++	    !of_property_read_u32(ab->dev->of_node, "base-addr", &addr))
+ 		ab->bus_params.fixed_mem_region = true;
+ 
+ 	ret = ath11k_pci_claim(ab_pci, pdev);

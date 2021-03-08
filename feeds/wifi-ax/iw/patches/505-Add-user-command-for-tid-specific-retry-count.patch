@@ -1,10 +1,11 @@
+diff --git a/interface.c b/interface.c
+index 89c95a9ac4ab..506151002fae 100644
 --- a/interface.c
 +++ b/interface.c
-@@ -727,3 +727,78 @@ COMMAND(switch, freq,
- 	"Switch the operating channel by sending a channel switch announcement (CSA).");
+@@ -728,6 +728,81 @@ COMMAND(switch, freq,
  COMMAND(switch, channel, "<channel> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz] [beacons <count>] [block-tx]",
  	NL80211_CMD_CHANNEL_SWITCH, 0, CIB_NETDEV, handle_chan, NULL);
-+
+ 
 +static int handle_retry_count(struct nl80211_state *state,
 +			      struct nl_msg *msg,
 +			      int argc, char **argv,
@@ -79,69 +80,15 @@
 +COMMAND(set, tid_retry_count, "tid <tid> <[peer <MAC address>] short <limit> long <limit>]>",
 +		NL80211_CMD_SET_TID_CONFIG, 0, CIB_NETDEV, handle_retry_count,
 +		"Set the retry count for the TIDs ");
++
+ 
+ static int toggle_tid_param(const char *argv0, const char *argv1,
+ 			    struct nl_msg *msg, uint32_t attr)
+diff --git a/nl80211.h b/nl80211.h
+index b0ce8767ea25..998851d8f9e1 100644
 --- a/nl80211.h
 +++ b/nl80211.h
-@@ -1101,6 +1101,10 @@
-  *	peer MAC address and %NL80211_ATTR_FRAME is used to specify the frame
-  *	content. The frame is ethernet data.
-  *
-+ * @NL80211_CMD_SET_TID_CONFIG: Data frame TID specific configuration
-+ *	is passed through this command using %NL80211_ATTR_TID_CONFIG
-+ *	nested attributes.
-+ *
-  * @NL80211_CMD_MAX: highest used command number
-  * @__NL80211_CMD_AFTER_LAST: internal use
-  */
-@@ -1325,6 +1329,8 @@ enum nl80211_commands {
- 
- 	NL80211_CMD_PROBE_MESH_LINK,
- 
-+	NL80211_CMD_SET_TID_CONFIG,
-+
- 	/* add new commands above here */
- 
- 	/* used to define NL80211_CMD_MAX below */
-@@ -2367,15 +2373,23 @@ enum nl80211_commands {
-  *	functionality.
-  *
-  * @NL80211_ATTR_WIPHY_EDMG_CHANNELS: bitmap that indicates the 2.16 GHz
-- *	channel(s) that are allowed to be used for EDMG transmissions.
-- *	Defined by IEEE P802.11ay/D4.0 section 9.4.2.251. (u8 attribute)
-+ * 	channel(s) that are allowed to be used for EDMG transmissions.
-+ * 	Defined by IEEE P802.11ay/D4.0 section 9.4.2.251. (u8 attribute)
-  * @NL80211_ATTR_WIPHY_EDMG_BW_CONFIG: Channel BW Configuration subfield encodes
-- *	the allowed channel bandwidth configurations. (u8 attribute)
-- *	Defined by IEEE P802.11ay/D4.0 section 9.4.2.251, Table 13.
-+ * 	the allowed channel bandwidth configurations. (u8 attribute)
-+ * 	Defined by IEEE P802.11ay/D4.0 section 9.4.2.251, Table 13.
-+ *
-+ * @NL80211_ATTR_VLAN_ID: VLAN ID (1..4094) for the station and VLAN group key
-+ *      (u16).
-  *
-  * @NL80211_ATTR_WIPHY_ANTENNA_GAIN: Configured antenna gain. Used to reduce
-  *	transmit power to stay within regulatory limits. u32, dBi.
-  *
-+ * @NL80211_ATTR_TID_CONFIG: TID specific configuration in a
-+ *	nested attribute with %NL80211_ATTR_TID_* sub-attributes.
-+ * @NL80211_ATTR_MAX_RETRY_COUNT: The upper limit for the retry count
-+ *	configuration that the driver can accept.
-+ *
-  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
-  * @NL80211_ATTR_MAX: highest attribute number currently defined
-  * @__NL80211_ATTR_AFTER_LAST: internal use
-@@ -2838,6 +2852,11 @@ enum nl80211_attrs {
- 	NL80211_ATTR_WIPHY_EDMG_CHANNELS,
- 	NL80211_ATTR_WIPHY_EDMG_BW_CONFIG,
- 
-+	NL80211_ATTR_VLAN_ID,
-+
-+	NL80211_ATTR_TID_CONFIG,
-+	NL80211_ATTR_MAX_RETRY_COUNT,
-+
- 	NL80211_ATTR_WIPHY_ANTENNA_GAIN,
- 
- 	/* add attributes here, update the policy in nl80211.c */
-@@ -4601,7 +4620,55 @@ enum nl80211_ps_state {
+@@ -4886,7 +4886,55 @@ enum nl80211_ps_state {
  	NL80211_PS_DISABLED,
  	NL80211_PS_ENABLED,
  };

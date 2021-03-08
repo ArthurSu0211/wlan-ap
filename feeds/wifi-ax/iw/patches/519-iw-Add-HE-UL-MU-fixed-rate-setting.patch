@@ -12,11 +12,9 @@ Signed-off-by: Muna Sinada <msinada@codeaurora.org>
  nl80211.h |  1 +
  2 files changed, 46 insertions(+), 6 deletions(-)
 
-diff --git a/bitrate.c b/bitrate.c
-index 323bf4ce5fe7..bd91461938e9 100644
 --- a/bitrate.c
 +++ b/bitrate.c
-@@ -156,6 +156,7 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -155,6 +155,7 @@ int set_bitrates(struct nl_msg *msg,
  	bool have_ht_mcs_24 = false, have_ht_mcs_5 = false;
  	bool have_vht_mcs_24 = false, have_vht_mcs_5 = false;
  	bool have_he_mcs_24 = false, have_he_mcs_5 = false;
@@ -24,7 +22,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  	bool have_he_mcs_6 = false;
  	uint8_t ht_mcs_24[77], ht_mcs_5[77];
  	int n_ht_mcs_24 = 0, n_ht_mcs_5 = 0;
-@@ -164,16 +165,20 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -163,16 +164,20 @@ int set_bitrates(struct nl_msg *msg,
  	struct nl80211_txrate_he txrate_he_24 = {};
  	struct nl80211_txrate_he txrate_he_5 = {};
  	struct nl80211_txrate_he txrate_he_6 = {};
@@ -47,7 +45,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  	int sgi_24 = 0, sgi_5 = 0, lgi_24 = 0, lgi_5 = 0;
  	int has_he_gi_24 = 0, has_he_gi_5 = 0, has_he_ltf_24 = 0, has_he_ltf_5 = 0;
  	int has_he_gi_6 = 0, has_he_ltf_6 = 0;
-@@ -189,6 +194,7 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -188,6 +193,7 @@ int set_bitrates(struct nl_msg *msg,
  		S_GI,
  		S_HE_GI,
  		S_HE_LTF,
@@ -55,7 +53,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  	} parser_state = S_NONE;
  
  	for (i = 0; i < argc; i++) {
-@@ -290,6 +296,20 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -289,6 +295,20 @@ int set_bitrates(struct nl_msg *msg,
  		} else if (strcmp(argv[i], "he-ltf-6") == 0) {
  			has_he_ltf_6 = 1;
  			parser_state = S_HE_LTF;
@@ -76,7 +74,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  		} else switch (parser_state) {
  		case S_LEGACY:
  			tmpd = strtod(argv[i], &end);
-@@ -330,6 +350,11 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -329,6 +349,11 @@ int set_bitrates(struct nl_msg *msg,
  				return 1;
  			he_ltf = he_ltf >> 1;
  			break;
@@ -86,9 +84,9 @@ index 323bf4ce5fe7..bd91461938e9 100644
 +			he_ul_argv[(*he_ul_argc)++] = argv [i];
 +			break;
  		default:
- 			return 1;
- 		}
-@@ -367,12 +392,20 @@ static int handle_bitrates(struct nl80211_state *state,
+ 			if (attr != NL80211_ATTR_TX_RATES)
+ 				goto next;
+@@ -372,12 +397,20 @@ next:
  			return 1;
  	}
  
@@ -100,7 +98,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
 +                if (!setup_he(&txrate_he_ul_5, he_ul_argc_5, he_ul_argv_5))
 +                        return -EINVAL;
 +
- 	nl_rates = nla_nest_start(msg, NL80211_ATTR_TX_RATES);
+ 	nl_rates = nla_nest_start(msg, attr);
  	if (!nl_rates)
  		goto nla_put_failure;
  
@@ -110,7 +108,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  		nl_band = nla_nest_start(msg, NL80211_BAND_2GHZ);
  		if (!nl_band)
  			goto nla_put_failure;
-@@ -393,11 +426,14 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -398,11 +431,14 @@ next:
  			nla_put_u8(msg, NL80211_TXRATE_HE_GI, he_gi);
  		if (has_he_ltf_24)
  			nla_put_u8(msg, NL80211_TXRATE_HE_LTF, he_ltf);
@@ -126,7 +124,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  		nl_band = nla_nest_start(msg, NL80211_BAND_5GHZ);
  		if (!nl_band)
  			goto nla_put_failure;
-@@ -418,6 +454,9 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -423,6 +459,9 @@ next:
  			nla_put_u8(msg, NL80211_TXRATE_HE_GI, he_gi);
  		if (has_he_ltf_5)
  			nla_put_u8(msg, NL80211_TXRATE_HE_LTF, he_ltf);
@@ -136,7 +134,7 @@ index 323bf4ce5fe7..bd91461938e9 100644
  		nla_nest_end(msg, nl_band);
  	}
  
-@@ -443,9 +482,9 @@ static int handle_bitrates(struct nl80211_state *state,
+@@ -456,9 +495,9 @@ static int handle_bitrates(struct nl8021
  }
  
  #define DESCR_LEGACY "[legacy-<2.4|5> <legacy rate in Mbps>*]"
@@ -148,11 +146,9 @@ index 323bf4ce5fe7..bd91461938e9 100644
  	NL80211_CMD_SET_TX_BITRATE_MASK, 0, CIB_NETDEV, handle_bitrates,
  	"Sets up the specified rate masks.\n"
  	"Not passing any arguments would clear the existing mask (if any).");
-diff --git a/nl80211.h b/nl80211.h
-index 17386c0d8c8f..5f1faaf27760 100644
 --- a/nl80211.h
 +++ b/nl80211.h
-@@ -4589,6 +4589,7 @@ enum nl80211_tx_rate_attributes {
+@@ -4817,6 +4817,7 @@ enum nl80211_tx_rate_attributes {
  	NL80211_TXRATE_HE,
  	NL80211_TXRATE_HE_GI,
  	NL80211_TXRATE_HE_LTF,
@@ -160,6 +156,3 @@ index 17386c0d8c8f..5f1faaf27760 100644
  
  	/* keep last */
  	__NL80211_TXRATE_AFTER_LAST,
--- 
-2.7.4
-

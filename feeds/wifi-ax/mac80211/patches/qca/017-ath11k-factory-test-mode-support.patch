@@ -571,12 +571,13 @@
  	case WMI_VDEV_DELETE_RESP_EVENTID:
 --- a/drivers/net/wireless/ath/ath11k/debug_htt_stats.c
 +++ b/drivers/net/wireless/ath/ath11k/debug_htt_stats.c
-@@ -4501,7 +4501,7 @@ static int ath11k_open_htt_stats(struct
+@@ -4501,7 +4501,8 @@ static int ath11k_open_htt_stats(struct
  
  	mutex_lock(&ar->conf_mutex);
  
 -	if (ar->state != ATH11K_STATE_ON) {
-+	if (ar->state != ATH11K_STATE_ON && ar->state != ATH11K_STATE_TM) {
++	if (ar->state != ATH11K_STATE_ON &&
++	    ar->ab->fw_mode != ATH11K_FIRMWARE_MODE_FTM) {
  		ret = -ENETDOWN;
  		goto err_unlock;
  	}

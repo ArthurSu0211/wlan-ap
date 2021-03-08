@@ -25,7 +25,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 
 --- a/drivers/net/wireless/ath/ath11k/ce.c
 +++ b/drivers/net/wireless/ath/ath11k/ce.c
-@@ -190,6 +190,83 @@ const struct ce_attr ath11k_host_ce_conf
+@@ -190,6 +190,84 @@ const struct ce_attr ath11k_host_ce_conf
  
  };
  
@@ -62,6 +62,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 +		.src_nentries = 32,
 +		.src_sz_max = 2048,
 +		.dest_nentries = 0,
++		.send_cb = ath11k_htc_tx_completion_handler,
 +	},
 +
 +	/* CE4: host->target HTT */
@@ -109,7 +110,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  static int ath11k_ce_rx_buf_enqueue_pipe(struct ath11k_ce_pipe *pipe,
  					 struct sk_buff *skb, dma_addr_t paddr)
  {
-@@ -452,7 +529,7 @@ static void ath11k_ce_srng_msi_ring_para
+@@ -452,7 +530,7 @@ static void ath11k_ce_srng_msi_ring_para
  						 struct hal_srng_params *ring_params)
  {
  	u32 msi_data_start;
@@ -118,7 +119,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  	u32 msi_irq_start;
  	u32 addr_lo;
  	u32 addr_hi;
-@@ -466,10 +543,11 @@ static void ath11k_ce_srng_msi_ring_para
+@@ -466,10 +544,11 @@ static void ath11k_ce_srng_msi_ring_para
  		return;
  
  	ath11k_get_msi_address(ab, &addr_lo, &addr_hi);

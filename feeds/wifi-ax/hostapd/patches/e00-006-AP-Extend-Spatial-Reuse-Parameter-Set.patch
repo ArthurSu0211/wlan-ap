@@ -56,7 +56,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  static int hostapd_config_bss(struct hostapd_config *conf, const char *ifname)
  {
  	struct hostapd_bss_config **all, *bss;
-@@ -3551,13 +3577,31 @@ static int hostapd_config_fill(struct ho
+@@ -3555,13 +3581,31 @@ static int hostapd_config_fill(struct ho
  		conf->he_mu_edca.he_mu_ac_vo_param[HE_MU_AC_PARAM_TIMER_IDX] =
  			atoi(pos) & 0xff;
  	} else if (os_strcmp(buf, "he_spr_sr_control") == 0) {
@@ -115,7 +115,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  # If interval is set to non-zero, the AP schedules unsolicited
 --- a/src/ap/ap_config.h
 +++ b/src/ap/ap_config.h
-@@ -903,8 +903,8 @@ struct spatial_reuse {
+@@ -904,8 +904,8 @@ struct spatial_reuse {
  	u8 non_srg_obss_pd_max_offset;
  	u8 srg_obss_pd_min_offset;
  	u8 srg_obss_pd_max_offset;
@@ -128,7 +128,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  /**
 --- a/src/ap/beacon.c
 +++ b/src/ap/beacon.c
-@@ -1842,11 +1842,17 @@ int ieee802_11_set_beacon(struct hostapd
+@@ -1844,11 +1844,17 @@ int ieee802_11_set_beacon(struct hostapd
  	params.assocresp_ies = assocresp;
  	params.reenable = hapd->reenable_beacon;
  #ifdef CONFIG_IEEE80211AX
@@ -206,7 +206,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  	 * he_bss_color - Whether the BSS Color is disabled
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
-@@ -4664,17 +4664,33 @@ static int wpa_driver_nl80211_set_ap(voi
+@@ -4668,17 +4668,33 @@ static int wpa_driver_nl80211_set_ap(voi
  	}
  
  #ifdef CONFIG_IEEE80211AX

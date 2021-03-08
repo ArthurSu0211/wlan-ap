@@ -35,7 +35,7 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
 +	Enables 512MB memory profile for ath11k
 --- a/drivers/net/wireless/ath/ath11k/hw.h
 +++ b/drivers/net/wireless/ath/ath11k/hw.h
-@@ -9,11 +9,22 @@
+@@ -9,11 +9,30 @@
  #include "wmi.h"
  
  /* Target configuration defines */
@@ -46,6 +46,10 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
 +/* Max num of stations (per radio) */
 +#define TARGET_NUM_STATIONS	128
 +#define ATH11K_QMI_TARGET_MEM_MODE	ATH11K_QMI_TARGET_MEM_MODE_512M
++#define ATH11K_DP_TX_COMP_RING_SIZE	8192
++#define ATH11K_DP_RXDMA_MON_STATUS_RING_SIZE	512
++#define ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE	128
++#define ATH11K_DP_RXDMA_MONITOR_DST_RING_SIZE	128
 +#else
  /* Num VDEVS per radio */
  #define TARGET_NUM_VDEVS	(16 + 1)
@@ -54,11 +58,15 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
 +/* Max num of stations (per radio) */
 +#define TARGET_NUM_STATIONS	512
 +#define ATH11K_QMI_TARGET_MEM_MODE	ATH11K_QMI_TARGET_MEM_MODE_DEFAULT
++#define ATH11K_DP_TX_COMP_RING_SIZE	32768
++#define ATH11K_DP_RXDMA_MON_STATUS_RING_SIZE	1024
++#define ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE	4096
++#define ATH11K_DP_RXDMA_MONITOR_DST_RING_SIZE	2048
 +#endif
  
  /* Num of peers for Single Radio mode */
  #define TARGET_NUM_PEERS_SINGLE		(TARGET_NUM_PEERS_PDEV)
-@@ -24,9 +35,6 @@
+@@ -24,9 +43,6 @@
  /* Num of peers for DBS_SBS */
  #define TARGET_NUM_PEERS_DBS_SBS	(3 * TARGET_NUM_PEERS_PDEV)
  
@@ -70,7 +78,7 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
  #define TARGET_NUM_TIDS(x)	(2 * TARGET_NUM_PEERS(x) + \
 --- a/drivers/net/wireless/ath/ath11k/qmi.c
 +++ b/drivers/net/wireless/ath/ath11k/qmi.c
-@@ -3750,7 +3750,7 @@ int ath11k_qmi_init_service(struct ath11
+@@ -3755,7 +3755,7 @@ int ath11k_qmi_init_service(struct ath11
  	memset(&ab->qmi.target_mem, 0, sizeof(struct target_mem_chunk));
  	ab->qmi.ab = ab;
  
@@ -108,3 +116,85 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
  ATH11K_DEBUG=
  ATH11K_DEBUGFS=
  ATH11K_TRACING=
+--- a/drivers/net/wireless/ath/ath11k/core.h
++++ b/drivers/net/wireless/ath/ath11k/core.h
+@@ -855,6 +855,7 @@ struct ath11k_base {
+ 	bool fw_recovery_support;
+ 	bool ce_remap;
+ 	u32 ce_remap_base_addr;
++	atomic_t num_max_allowed;
+ 
+ 	/* must be last */
+ 	u8 drv_priv[0] __aligned(sizeof(void *));
+--- a/drivers/net/wireless/ath/ath11k/dp.h
++++ b/drivers/net/wireless/ath/ath11k/dp.h
+@@ -184,8 +184,9 @@ struct ath11k_pdev_dp {
+ 
+ #define DP_WBM_RELEASE_RING_SIZE	64
+ #define DP_TCL_DATA_RING_SIZE		512
+-#define DP_TX_COMP_RING_SIZE		32768
++#define DP_TX_COMP_RING_SIZE		ATH11K_DP_TX_COMP_RING_SIZE
+ #define DP_TX_IDR_SIZE			DP_TX_COMP_RING_SIZE
++#define DP_TX_COMP_MAX_ALLOWED		((DP_TX_COMP_RING_SIZE << 1)/3)
+ #define DP_TCL_CMD_RING_SIZE		32
+ #define DP_TCL_STATUS_RING_SIZE		32
+ #define DP_REO_DST_RING_MAX		4
+@@ -198,9 +199,9 @@ struct ath11k_pdev_dp {
+ #define DP_RXDMA_BUF_RING_SIZE		4096
+ #define DP_RXDMA_REFILL_RING_SIZE	2048
+ #define DP_RXDMA_ERR_DST_RING_SIZE	1024
+-#define DP_RXDMA_MON_STATUS_RING_SIZE	1024
+-#define DP_RXDMA_MONITOR_BUF_RING_SIZE	4096
+-#define DP_RXDMA_MONITOR_DST_RING_SIZE	2048
++#define DP_RXDMA_MON_STATUS_RING_SIZE	ATH11K_DP_RXDMA_MON_STATUS_RING_SIZE
++#define DP_RXDMA_MONITOR_BUF_RING_SIZE	ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE
++#define DP_RXDMA_MONITOR_DST_RING_SIZE	ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE
+ #define DP_RXDMA_MONITOR_DESC_RING_SIZE	4096
+ 
+ #define DP_RX_BUFFER_SIZE	2048
+--- a/drivers/net/wireless/ath/ath11k/dp_tx.c
++++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
+@@ -139,6 +139,11 @@ int ath11k_dp_tx(struct ath11k *ar, stru
+ 	 * If all rings are full, we drop the packet.
+ 	 * //TODO Add throttling logic when all rings are full
+ 	 */
++
++	if (atomic_read(&ab->num_max_allowed) > DP_TX_COMP_MAX_ALLOWED) {
++		atomic_inc(&ab->soc_stats.tx_err.misc_fail);
++		ret = -EINVAL;
++	}
+ 	ring_selector = atomic_inc_return(&ab->tcl_ring_selector);
+ 
+ tcl_ring_sel:
+@@ -317,6 +322,7 @@ tcl_ring_sel:
+ 	spin_unlock_bh(&tcl_ring->lock);
+ 
+ 	atomic_inc(&ar->dp.num_tx_pending);
++	atomic_inc(&ab->num_max_allowed);
+ 
+ 	return 0;
+ 
+@@ -365,6 +371,7 @@ static void ath11k_dp_tx_free_txbuf(stru
+ 	ar = ab->pdevs[mac_id].ar;
+ 	if (atomic_dec_and_test(&ar->dp.num_tx_pending))
+ 		wake_up(&ar->dp.tx_empty_waitq);
++	atomic_dec(&ab->num_max_allowed);
+ }
+ 
+ static void
+@@ -398,6 +405,7 @@ ath11k_dp_tx_htt_tx_complete_buf(struct
+ 
+ 	if (atomic_dec_and_test(&ar->dp.num_tx_pending))
+ 		wake_up(&ar->dp.tx_empty_waitq);
++	atomic_dec(&ab->num_max_allowed);
+ 
+ 	flags = skb_cb->flags;
+ 	vif = skb_cb->vif;
+@@ -686,6 +694,7 @@ void ath11k_dp_tx_completion_handler(str
+ 			wake_up(&ar->dp.tx_empty_waitq);
+ 
+ 		ath11k_dp_tx_complete_msdu(ar, msdu, &ts);
++		atomic_dec(&ab->num_max_allowed);
+ 	}
+ }
+ 

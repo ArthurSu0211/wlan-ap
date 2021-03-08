@@ -209,6 +209,7 @@ enum nss_wifili_msg_types {
 	NSS_WIFILI_PEER_EXT_STATS_MSG,
 	NSS_WIFILI_CLR_STATS,
 	NSS_WIFILI_PEER_4ADDR_EVENT_MSG,
+	NSS_WIFILI_DBDC_REPEATER_LOOP_DETECTION_MSG,
 	NSS_WIFILI_MAX_MSG
 };
 
@@ -1561,6 +1562,14 @@ struct nss_wifili_peer_isolation_msg {
 };
 
 /**
+ * nss_wifili_dbdc_repeater_loop_detection_msg
+ *	Wifili DBDC repeater loop detection message.
+ */
+struct nss_wifili_dbdc_repeater_loop_detection_msg {
+	bool dbdc_loop_detected;		/**< DBDC repeater loop detection flag. */
+};
+
+/**
  * nss_wifili_dbdc_repeater_set_msg
  *	Wifili DBDC repeater set message.
  */
@@ -1756,6 +1765,8 @@ struct nss_wifili_msg {
 				/**< Clear NSS firmware statistics. */
 		struct nss_wifili_peer_wds_4addr_allow_msg wpswm;
 				/**< Peer four address event message. */
+		struct nss_wifili_dbdc_repeater_loop_detection_msg wdrldm;
+				/**< Wifili DBDC repeater loop detection message. */
 	} msg;			/**< Message payload. */
 };
 

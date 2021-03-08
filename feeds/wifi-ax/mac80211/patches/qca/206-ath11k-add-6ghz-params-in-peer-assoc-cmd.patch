@@ -43,7 +43,7 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
 +	if (sta->bandwidth >= IEEE80211_STA_RX_BW_40)
 +		arg->bw_40 = true;
 +
-+	if (sta->bandwidth == IEEE80211_STA_RX_BW_80)
++	if (sta->bandwidth >= IEEE80211_STA_RX_BW_80)
 +		arg->bw_80 = true;
 +
 +	if (sta->bandwidth == IEEE80211_STA_RX_BW_160)

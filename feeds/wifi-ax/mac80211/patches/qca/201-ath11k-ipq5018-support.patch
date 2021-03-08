@@ -165,7 +165,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  };
  
  enum ath11k_firmware_mode {
-@@ -765,6 +770,7 @@ struct ath11k_base {
+@@ -766,6 +771,7 @@ struct ath11k_base {
  	struct ath11k_soc_nss nss;
  
  	void __iomem *mem;
@@ -173,7 +173,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	dma_addr_t mem_pa;
  	unsigned long mem_len;
  
-@@ -845,6 +851,9 @@ struct ath11k_base {
+@@ -846,6 +852,9 @@ struct ath11k_base {
  	u32 sw_pdev_id_map[MAX_RADIOS];
  	u32 hw_pdev_id_map[MAX_RADIOS];
  	bool fw_recovery_support;
@@ -183,7 +183,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	/* must be last */
  	u8 drv_priv[0] __aligned(sizeof(void *));
  };
-@@ -981,6 +990,9 @@ extern const struct ce_pipe_config ath11
+@@ -982,6 +991,9 @@ extern const struct ce_pipe_config ath11
  extern const struct ce_pipe_config ath11k_target_ce_config_wlan_qcn9000[];
  extern const struct service_to_pipe ath11k_target_service_to_ce_map_wlan_qca6390[];
  
@@ -203,10 +203,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  };
  
  struct ath11k_hw_ops {
-@@ -210,12 +211,14 @@ struct ath11k_hw_ops {
+@@ -210,12 +211,15 @@ struct ath11k_hw_ops {
  	void (*rx_desc_set_msdu_len)(struct hal_rx_desc *desc, u16 len);
  	struct rx_attention *(*rx_desc_get_attention)(struct hal_rx_desc *desc);
  	u8 *(*rx_desc_get_msdu_payload)(struct hal_rx_desc *desc);
++	void (*set_rx_fragmentation_dst_ring)(struct ath11k_base *ab);
 +	u32 (*get_reo_dest_remap_config)(void);
  };
  
@@ -218,7 +219,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  
  extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_ipq8074;
  extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_qca6390;
-@@ -306,6 +309,12 @@ struct ath11k_hw_regs {
+@@ -306,6 +310,12 @@ struct ath11k_hw_regs {
  	u32 hal_reo_tcl_ring_base_lsb;
  	u32 hal_reo_tcl_ring_hp;
  
@@ -231,7 +232,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	u32 hal_reo_status_ring_base_lsb;
  	u32 hal_reo_status_hp;
  
-@@ -326,5 +335,6 @@ struct ath11k_hw_regs {
+@@ -326,5 +336,6 @@ struct ath11k_hw_regs {
  extern const struct ath11k_hw_regs ipq8074_regs;
  extern const struct ath11k_hw_regs qca6390_regs;
  extern const struct ath11k_hw_regs qcn9000_regs;
@@ -312,10 +313,67 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  
 --- a/drivers/net/wireless/ath/ath11k/hw.c
 +++ b/drivers/net/wireless/ath/ath11k/hw.c
-@@ -508,6 +508,47 @@ static u8 *ath11k_hw_qcn9000_rx_desc_get
+@@ -10,6 +10,7 @@
+ #include "hw.h"
+ #include "core.h"
+ #include "ce.h"
++#include "hif.h"
+ 
+ /* Map from pdev index to hw mac index */
+ static u8 ath11k_hw_ipq8074_mac_from_pdev_id(struct ath11k_hw_params *hw, int pdev_idx)
+@@ -343,6 +344,25 @@ struct rx_attention *ath11k_hw_ipq8074_r
+ 	return &desc->u.ipq8074.attention;
+ }
+ 
++static void ath11k_hw_ipq8074_set_rx_fragmentation_dst_ring(struct ath11k_base *ab)
++{
++	u8 frag_dst_ring = HAL_SRNG_RING_ID_REO2SW1;
++	u32 reo_base = HAL_SEQ_WCSS_UMAC_REO_REG;
++	u32 val;
++
++	if (ab->nss.enabled)
++		frag_dst_ring = HAL_SRNG_REO_ALTERNATE_SELECT;
++
++	val = ath11k_hif_read32(ab, reo_base + HAL_REO1_GEN_ENABLE);
++
++	val &= ~HAL_REO1_GEN_ENABLE_FRAG_DST_RING;
++	val |= FIELD_PREP(HAL_REO1_GEN_ENABLE_FRAG_DST_RING,
++			  frag_dst_ring) |
++	       FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_LIST_ENABLE, 1) |
++	       FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_FLUSH_ENABLE, 1);
++	ath11k_hif_write32(ab, reo_base + HAL_REO1_GEN_ENABLE, val);
++}
++
+ static u8 *ath11k_hw_ipq8074_rx_desc_get_msdu_payload(struct hal_rx_desc *desc)
+ {
+ 	return &desc->u.ipq8074.msdu_payload[0];
+@@ -508,6 +528,70 @@ static u8 *ath11k_hw_qcn9000_rx_desc_get
  	return &desc->u.qcn9000.msdu_payload[0];
  }
  
++static void ath11k_hw_ipq5018_set_rx_fragmentation_dst_ring(struct ath11k_base *ab)
++{
++	u8 frag_dst_ring = HAL_SRNG_RING_ID_REO2SW1;
++	u32 reo_base = HAL_SEQ_WCSS_UMAC_REO_REG;
++	u32 val;
++
++	if (ab->nss.enabled)
++		frag_dst_ring = HAL_SRNG_REO_ALTERNATE_SELECT;
++
++	val = ath11k_hif_read32(ab, reo_base + HAL_REO1_GEN_ENABLE);
++
++	val &= ~HAL_REO1_GEN_ENABLE_FRAG_DST_RING;
++	val |= FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_LIST_ENABLE, 1) |
++	       FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_FLUSH_ENABLE, 1);
++	ath11k_hif_write32(ab, reo_base + HAL_REO1_GEN_ENABLE, val);
++
++	val = ath11k_hif_read32(ab, reo_base + HAL_REO1_R0_MISC_CTL);
++	val &= ~HAL_REO1_MISC_CTL_FRAGMENT_DEST_RING;
++	val |= FIELD_PREP(HAL_REO1_MISC_CTL_FRAGMENT_DEST_RING,
++			  frag_dst_ring);
++	ath11k_hif_write32(ab, reo_base + HAL_REO1_R0_MISC_CTL, val);
++}
++
 +static u32 ath11k_get_reo_dest_remap_config_default(void)
 +{
 +	u32 ring_hash_map;
@@ -360,34 +418,38 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  const struct ath11k_hw_ops ipq8074_ops = {
  	.get_hw_mac_from_pdev_id = ath11k_hw_ipq8074_mac_from_pdev_id,
  	.wmi_init_config = ath11k_init_wmi_config_qca6390,
-@@ -542,6 +583,7 @@ const struct ath11k_hw_ops ipq8074_ops =
- 	.rx_desc_get_mpdu_ppdu_id = ath11k_hw_ipq8074_rx_desc_get_mpdu_ppdu_id,
+@@ -543,6 +627,8 @@ const struct ath11k_hw_ops ipq8074_ops =
+ 	.rx_desc_set_msdu_len = ath11k_hw_ipq8074_rx_desc_set_msdu_len,
  	.rx_desc_get_attention = ath11k_hw_ipq8074_rx_desc_get_attention,
  	.rx_desc_get_msdu_payload = ath11k_hw_ipq8074_rx_desc_get_msdu_payload,
++	.set_rx_fragmentation_dst_ring = ath11k_hw_ipq8074_set_rx_fragmentation_dst_ring,
 +	.get_reo_dest_remap_config = ath11k_get_reo_dest_remap_config_default,
  };
  
  const struct ath11k_hw_ops ipq6018_ops = {
-@@ -579,6 +621,7 @@ const struct ath11k_hw_ops ipq6018_ops =
+@@ -580,6 +666,8 @@ const struct ath11k_hw_ops ipq6018_ops =
  	.rx_desc_set_msdu_len = ath11k_hw_ipq8074_rx_desc_set_msdu_len,
  	.rx_desc_get_attention = ath11k_hw_ipq8074_rx_desc_get_attention,
  	.rx_desc_get_msdu_payload = ath11k_hw_ipq8074_rx_desc_get_msdu_payload,
++	.set_rx_fragmentation_dst_ring = ath11k_hw_ipq8074_set_rx_fragmentation_dst_ring,
 +	.get_reo_dest_remap_config = ath11k_get_reo_dest_remap_config_default,
  };
  
  const struct ath11k_hw_ops qca6390_ops = {
-@@ -618,6 +661,7 @@ const struct ath11k_hw_ops qca6390_ops =
+@@ -619,6 +707,8 @@ const struct ath11k_hw_ops qca6390_ops =
  	.rx_desc_set_msdu_len = ath11k_hw_ipq8074_rx_desc_set_msdu_len,
  	.rx_desc_get_attention = ath11k_hw_ipq8074_rx_desc_get_attention,
  	.rx_desc_get_msdu_payload = ath11k_hw_ipq8074_rx_desc_get_msdu_payload,
++	.set_rx_fragmentation_dst_ring = ath11k_hw_ipq8074_set_rx_fragmentation_dst_ring,
 +	.get_reo_dest_remap_config = ath11k_get_reo_dest_remap_config_default,
  };
  
  const struct ath11k_hw_ops qcn9000_ops = {
-@@ -655,6 +699,46 @@ const struct ath11k_hw_ops qcn9000_ops =
+@@ -656,6 +746,48 @@ const struct ath11k_hw_ops qcn9000_ops =
  	.rx_desc_set_msdu_len = ath11k_hw_qcn9000_rx_desc_set_msdu_len,
  	.rx_desc_get_attention = ath11k_hw_qcn9000_rx_desc_get_attention,
  	.rx_desc_get_msdu_payload = ath11k_hw_qcn9000_rx_desc_get_msdu_payload,
++	.set_rx_fragmentation_dst_ring = ath11k_hw_ipq8074_set_rx_fragmentation_dst_ring,
 +	.get_reo_dest_remap_config = ath11k_get_reo_dest_remap_config_default,
 +};
 +
@@ -427,11 +489,12 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	.rx_desc_set_msdu_len = ath11k_hw_qcn9000_rx_desc_set_msdu_len,
 +	.rx_desc_get_attention = ath11k_hw_qcn9000_rx_desc_get_attention,
 +	.rx_desc_get_msdu_payload = ath11k_hw_qcn9000_rx_desc_get_msdu_payload,
++	.set_rx_fragmentation_dst_ring = ath11k_hw_ipq5018_set_rx_fragmentation_dst_ring,
 +	.get_reo_dest_remap_config = ath11k_get_reo_dest_remap_config_5018,
  };
  
  #define ATH11K_TX_RING_MASK_0 0x1
-@@ -1473,6 +1557,197 @@ const struct service_to_pipe ath11k_targ
+@@ -1474,6 +1606,197 @@ const struct service_to_pipe ath11k_targ
  
  };
  
@@ -629,7 +692,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_qcn9000 = {
  	.tx  = {
  		ATH11K_TX_RING_MASK_0,
-@@ -1563,6 +1838,14 @@ const struct ath11k_hw_regs ipq8074_regs
+@@ -1564,6 +1887,14 @@ const struct ath11k_hw_regs ipq8074_regs
  	.hal_reo_tcl_ring_base_lsb = 0x000003fc,
  	.hal_reo_tcl_ring_hp = 0x00003058,
  
@@ -644,7 +707,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	/* REO status address */
  	.hal_reo_status_ring_base_lsb = 0x00000504,
  	.hal_reo_status_hp = 0x00003070,
-@@ -1630,6 +1913,14 @@ const struct ath11k_hw_regs qca6390_regs
+@@ -1631,6 +1962,14 @@ const struct ath11k_hw_regs qca6390_regs
  	.hal_reo_tcl_ring_base_lsb = 0x000003a4,
  	.hal_reo_tcl_ring_hp = 0x00003050,
  
@@ -659,7 +722,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	/* REO status address */
  	.hal_reo_status_ring_base_lsb = 0x000004ac,
  	.hal_reo_status_hp = 0x00003068,
-@@ -1697,6 +1988,14 @@ const struct ath11k_hw_regs qcn9000_regs
+@@ -1698,6 +2037,14 @@ const struct ath11k_hw_regs qcn9000_regs
  	.hal_reo_tcl_ring_base_lsb = 0x000003fc,
  	.hal_reo_tcl_ring_hp = 0x00003058,
  
@@ -674,7 +737,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	/* REO status address */
  	.hal_reo_status_ring_base_lsb = 0x00000504,
  	.hal_reo_status_hp = 0x00003070,
-@@ -1709,6 +2008,81 @@ const struct ath11k_hw_regs qcn9000_regs
+@@ -1710,6 +2057,81 @@ const struct ath11k_hw_regs qcn9000_regs
  
  	/* WBM Idle address */
  	.hal_wbm_idle_link_ring_base_lsb = 0x00000874,
@@ -776,15 +839,32 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  
 --- a/drivers/net/wireless/ath/ath11k/hal_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/hal_rx.c
-@@ -804,6 +804,7 @@ void ath11k_hal_reo_hw_setup(struct ath1
- 	u8 frag_dest_ring = HAL_SRNG_RING_ID_REO2SW1;
+@@ -801,22 +801,10 @@ void ath11k_hal_reo_init_cmd_ring(struct
+ 
+ void ath11k_hal_reo_hw_setup(struct ath11k_base *ab, u32 ring_hash_map)
+ {
+-	u8 frag_dest_ring = HAL_SRNG_RING_ID_REO2SW1;
  	u32 reo_base = HAL_SEQ_WCSS_UMAC_REO_REG;
- 	u32 val;
+-	u32 val;
+-
+-	if (ab->nss.enabled)
+-		frag_dest_ring = HAL_SRNG_REO_ALTERNATE_SELECT;
+-
+-	val = ath11k_hif_read32(ab, reo_base + HAL_REO1_GEN_ENABLE);
+-
+-	val &= ~HAL_REO1_GEN_ENABLE_FRAG_DST_RING;
+-	val |= FIELD_PREP(HAL_REO1_GEN_ENABLE_FRAG_DST_RING,
+-			  frag_dest_ring) |
+-	       FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_LIST_ENABLE, 1) |
+-	       FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_FLUSH_ENABLE, 1);
+-	ath11k_hif_write32(ab, reo_base + HAL_REO1_GEN_ENABLE, val);
 +	u8 reo_dest_hash_shift = ab->hw_params.reo_dest_ring_map_shift;
  
- 	if (ab->nss.enabled)
- 		frag_dest_ring = HAL_SRNG_REO_ALTERNATE_SELECT;
-@@ -830,18 +831,18 @@ void ath11k_hal_reo_hw_setup(struct ath1
++	ab->hw_params.hw_ops->set_rx_fragmentation_dst_ring(ab);
+ 	ath11k_hif_write32(ab, reo_base + HAL_REO1_AGING_THRESH_IX_0(ab),
+ 			   HAL_DEFAULT_REO_TIMEOUT_USEC);
+ 	ath11k_hif_write32(ab, reo_base + HAL_REO1_AGING_THRESH_IX_1(ab),
+@@ -830,18 +818,18 @@ void ath11k_hal_reo_hw_setup(struct ath1
  	if (ab->nss.enabled)
  		return;
  
@@ -928,7 +1008,15 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  #define HAL_LINK_DESC_SIZE			(32 << 2)
  #define HAL_LINK_DESC_ALIGN			128
  #define HAL_NUM_MPDUS_PER_LINK_DESC		6
-@@ -171,16 +173,16 @@ struct ath11k_base;
+@@ -112,6 +114,7 @@ struct ath11k_base;
+ #define HAL_REO1_DEST_RING_CTRL_IX_1		0x00000008
+ #define HAL_REO1_DEST_RING_CTRL_IX_2		0x0000000c
+ #define HAL_REO1_DEST_RING_CTRL_IX_3		0x00000010
++#define HAL_REO1_R0_MISC_CTL			0x000005d8
+ #define HAL_REO1_RING_BASE_LSB(ab)		ab->hw_params.regs->hal_reo1_ring_base_lsb
+ #define HAL_REO1_RING_BASE_MSB(ab)		ab->hw_params.regs->hal_reo1_ring_base_msb
+ #define HAL_REO1_RING_ID(ab)			ab->hw_params.regs->hal_reo1_ring_id
+@@ -171,16 +174,16 @@ struct ath11k_base;
  #define HAL_REO_TCL_RING_HP(ab)			ab->hw_params.regs->hal_reo_tcl_ring_hp
  
  /* REO CMD R0 address */
@@ -949,7 +1037,15 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  
  /* CE ring R0 address */
  #define HAL_CE_DST_RING_BASE_LSB		0x00000000
-@@ -303,6 +305,10 @@ struct ath11k_base;
+@@ -267,6 +270,7 @@ struct ath11k_base;
+ #define HAL_REO1_GEN_ENABLE_FRAG_DST_RING		GENMASK(25, 23)
+ #define HAL_REO1_GEN_ENABLE_AGING_LIST_ENABLE		BIT(2)
+ #define HAL_REO1_GEN_ENABLE_AGING_FLUSH_ENABLE		BIT(3)
++#define HAL_REO1_MISC_CTL_FRAGMENT_DEST_RING		GENMASK(19, 17)
+ 
+ /* CE ring bit field mask and shift */
+ #define HAL_CE_DST_R0_DEST_CTRL_MAX_LEN			GENMASK(15, 0)
+@@ -303,6 +307,10 @@ struct ath11k_base;
  #define HAL_WBM2SW_RELEASE_RING_BASE_MSB_RING_SIZE	0x000fffff
  #define HAL_RXDMA_RING_MAX_SIZE				0x0000ffff
  
@@ -960,7 +1056,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  /* Add any other errors here and return them in
   * ath11k_hal_rx_desc_get_err().
   */
-@@ -501,6 +507,7 @@ enum hal_srng_dir {
+@@ -501,6 +509,7 @@ enum hal_srng_dir {
  #define HAL_SRNG_FLAGS_LOW_THRESH_INTR_EN	0x00010000
  #define HAL_SRNG_FLAGS_MSI_INTR			0x00020000
  #define HAL_SRNG_FLAGS_LMAC_RING		0x80000000

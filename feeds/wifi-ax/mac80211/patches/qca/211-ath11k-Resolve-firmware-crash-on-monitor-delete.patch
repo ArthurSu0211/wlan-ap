@@ -20,17 +20,15 @@ Signed-off-by: Aloka Dixit <alokad@codeaurora.org>
 
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -574,6 +574,9 @@ struct ath11k *ath11k_mac_get_ar_from_ar
- 		if (pdev && pdev->ar) {
- 			ar = pdev->ar;
+@@ -5295,7 +5295,6 @@ static void ath11k_mac_op_tx(struct ieee
+ 			spin_unlock_bh(&ar->data_lock);
  
-+			if (ar->monitor_vdev_id == vdev_id)
-+				return ar;
-+
+ 		} else {
+-
  			spin_lock_bh(&ar->data_lock);
- 			list_for_each_entry(arvif, &ar->arvifs, list) {
- 				if (arvif->vdev_id == vdev_id) {
-@@ -5927,6 +5930,7 @@ static void ath11k_mac_op_remove_interfa
+ 
+ 			mgmt_stats->tx_succ_cnt[frm_type]++;
+@@ -5937,6 +5936,7 @@ static void ath11k_mac_op_remove_interfa
  		   vif->addr, arvif->vdev_id);
  
  	if (arvif->vdev_type == WMI_VDEV_TYPE_MONITOR) {
@@ -38,14 +36,3 @@ Signed-off-by: Aloka Dixit <alokad@codeaurora.org>
  		ar->monitor_vdev_created = false;
  	}
  	else if (ar->monitor_vdev_created && !ar->monitor_started)
---- a/drivers/net/wireless/ath/ath11k/wmi.h
-+++ b/drivers/net/wireless/ath/ath11k/wmi.h
-@@ -2664,7 +2664,7 @@ struct wmi_ssid {
- 	u32 ssid[8];
- } __packed;
- 
--#define ATH11K_VDEV_SETUP_TIMEOUT_HZ (1 * HZ)
-+#define ATH11K_VDEV_SETUP_TIMEOUT_HZ (3 * HZ)
- 
- struct wmi_vdev_start_request_cmd {
- 	u32 tlv_header;

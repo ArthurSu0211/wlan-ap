@@ -13,11 +13,9 @@ Signed-off-by: Nishant Pandey <nishpand@codeaurora.org>
  hostapd/ctrl_iface.c | 14 +++++++-------
  1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/hostapd/ctrl_iface.c b/hostapd/ctrl_iface.c
-index 584aee2..66c63a0 100644
 --- a/hostapd/ctrl_iface.c
 +++ b/hostapd/ctrl_iface.c
-@@ -3709,16 +3709,16 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
+@@ -3723,16 +3723,16 @@ static int hostapd_ctrl_iface_receive_pr
  		eloop_terminate();
  	} else if (os_strncmp(buf, "ACCEPT_ACL ", 11) == 0) {
  		if (os_strncmp(buf + 11, "ADD_MAC ", 8) == 0) {
@@ -41,6 +39,3 @@ index 584aee2..66c63a0 100644
  		} else if (os_strcmp(buf + 11, "SHOW") == 0) {
  			reply_len = hostapd_ctrl_iface_acl_show_mac(
  				hapd->conf->accept_mac,
--- 
-2.7.4
-

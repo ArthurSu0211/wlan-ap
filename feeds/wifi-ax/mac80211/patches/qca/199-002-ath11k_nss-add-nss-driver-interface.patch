@@ -2379,8 +2379,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	ath11k_nss_stop(ab);
 +
 +pdev_deinit:
-+	for (; i >= 0; i--)
-+		ath11k_nss_pdev_init(ab, i);
++	for (i -= 1; i >= 0; i--)
++		ath11k_nss_pdev_deinit(ab, i);
 +
 +	ath11k_nss_reset(ab);
 +	ath11k_nss_tx_desc_mem_free(ab);

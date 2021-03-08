@@ -18,8 +18,6 @@ Signed-off-by: Nishant Pandey <nishpand@codeaurora.org>
  wpa_supplicant/wpa_supplicant.conf | 14 ++++++++++++++
  6 files changed, 82 insertions(+), 1 deletion(-)
 
-diff --git a/wpa_supplicant/config.c b/wpa_supplicant/config.c
-index aa9953b..aa6c493 100644
 --- a/wpa_supplicant/config.c
 +++ b/wpa_supplicant/config.c
 @@ -20,7 +20,9 @@
@@ -33,7 +31,7 @@ index aa9953b..aa6c493 100644
  
  #if !defined(CONFIG_CTRL_IFACE) && defined(CONFIG_NO_CONFIG_WRITE)
  #define NO_CONFIG_WRITE
-@@ -2656,6 +2658,9 @@ static const struct parse_data ssid_fields[] = {
+@@ -2656,6 +2658,9 @@ static const struct parse_data ssid_fiel
  	{ INT(dot11MeshRetryTimeout) },
  	{ INT(dot11MeshConfirmTimeout) },
  	{ INT(dot11MeshHoldingTimeout) },
@@ -43,7 +41,7 @@ index aa9953b..aa6c493 100644
  #endif /* CONFIG_MESH */
  	{ INT(wpa_ptk_rekey) },
  	{ INT_RANGE(wpa_deny_ptk0_rekey, 0, 2) },
-@@ -2928,6 +2933,8 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
+@@ -2929,6 +2934,8 @@ void wpa_config_free_ssid(struct wpa_ssi
  	os_free(ssid->p2p_client_list);
  	os_free(ssid->bssid_blacklist);
  	os_free(ssid->bssid_whitelist);
@@ -52,7 +50,7 @@ index aa9953b..aa6c493 100644
  #ifdef CONFIG_HT_OVERRIDES
  	os_free(ssid->ht_mcs);
  #endif /* CONFIG_HT_OVERRIDES */
-@@ -3288,6 +3295,18 @@ int wpa_config_set(struct wpa_ssid *ssid, const char *var, const char *value,
+@@ -3290,6 +3297,18 @@ int wpa_config_set(struct wpa_ssid *ssid
  			}
  			ret = -1;
  		}
@@ -71,8 +69,6 @@ index aa9953b..aa6c493 100644
  #ifdef CONFIG_SAE
  		if (os_strcmp(var, "ssid") == 0 ||
  		    os_strcmp(var, "psk") == 0 ||
-diff --git a/wpa_supplicant/config_file.c b/wpa_supplicant/config_file.c
-index 21e77f8..b185fd5 100644
 --- a/wpa_supplicant/config_file.c
 +++ b/wpa_supplicant/config_file.c
 @@ -18,6 +18,9 @@
@@ -85,7 +81,7 @@ index 21e77f8..b185fd5 100644
  #include "uuid.h"
  #include "common/ieee802_1x_defs.h"
  #include "p2p/p2p.h"
-@@ -913,6 +916,9 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
+@@ -913,6 +916,9 @@ static void wpa_config_write_network(FIL
  	write_int(f, "mac_addr", ssid->mac_addr, -1);
  #ifdef CONFIG_MESH
  	STR(mesh_basic_rates);
@@ -95,8 +91,6 @@ index 21e77f8..b185fd5 100644
  	INT_DEF(dot11MeshMaxRetries, DEFAULT_MESH_MAX_RETRIES);
  	INT_DEF(dot11MeshRetryTimeout, DEFAULT_MESH_RETRY_TIMEOUT);
  	INT_DEF(dot11MeshConfirmTimeout, DEFAULT_MESH_CONFIRM_TIMEOUT);
-diff --git a/wpa_supplicant/config_ssid.h b/wpa_supplicant/config_ssid.h
-index 1fd94d8..1d9137e 100644
 --- a/wpa_supplicant/config_ssid.h
 +++ b/wpa_supplicant/config_ssid.h
 @@ -546,6 +546,11 @@ struct wpa_ssid {
@@ -111,8 +105,6 @@ index 1fd94d8..1d9137e 100644
  	int ht;
  	int ht40;
  
-diff --git a/wpa_supplicant/mesh.c b/wpa_supplicant/mesh.c
-index c1630d0..176e922 100644
 --- a/wpa_supplicant/mesh.c
 +++ b/wpa_supplicant/mesh.c
 @@ -15,6 +15,7 @@
@@ -123,7 +115,7 @@ index c1630d0..176e922 100644
  #include "ap/ieee802_11.h"
  #include "config_ssid.h"
  #include "config.h"
-@@ -320,6 +321,17 @@ static int wpa_supplicant_mesh_init(struct wpa_supplicant *wpa_s,
+@@ -320,6 +321,17 @@ static int wpa_supplicant_mesh_init(stru
  	ifmsh->bss[0]->dot11RSNASAERetransPeriod =
  		wpa_s->conf->dot11RSNASAERetransPeriod;
  	os_strlcpy(bss->conf->iface, wpa_s->ifname, sizeof(bss->conf->iface));
@@ -141,7 +133,7 @@ index c1630d0..176e922 100644
  
  	mconf = mesh_config_create(wpa_s, ssid);
  	if (!mconf)
-@@ -417,6 +429,16 @@ void wpa_mesh_notify_peer(struct wpa_supplicant *wpa_s, const u8 *addr,
+@@ -417,6 +429,16 @@ void wpa_mesh_notify_peer(struct wpa_sup
  			  const u8 *ies, size_t ie_len)
  {
  	struct ieee802_11_elems elems;
@@ -158,8 +150,6 @@ index c1630d0..176e922 100644
  
  	wpa_msg(wpa_s, MSG_INFO,
  		"new peer notification for " MACSTR, MAC2STR(addr));
-diff --git a/wpa_supplicant/mesh_mpm.c b/wpa_supplicant/mesh_mpm.c
-index ea62abf..65bfa3a 100644
 --- a/wpa_supplicant/mesh_mpm.c
 +++ b/wpa_supplicant/mesh_mpm.c
 @@ -16,6 +16,7 @@
@@ -170,7 +160,7 @@ index ea62abf..65bfa3a 100644
  #include "ap/wpa_auth.h"
  #include "wpa_supplicant_i.h"
  #include "driver_i.h"
-@@ -1119,10 +1120,12 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
+@@ -1128,10 +1129,12 @@ void mesh_mpm_action_rx(struct wpa_suppl
  	enum plink_event event;
  	struct ieee802_11_elems elems;
  	struct mesh_peer_mgmt_ie peer_mgmt_ie;
@@ -183,7 +173,7 @@ index ea62abf..65bfa3a 100644
  
  	if (mgmt->u.action.category != WLAN_ACTION_SELF_PROTECTED)
  		return;
-@@ -1170,6 +1173,18 @@ void mesh_mpm_action_rx(struct wpa_supplicant *wpa_s,
+@@ -1179,6 +1182,18 @@ void mesh_mpm_action_rx(struct wpa_suppl
  		return;
  	}
  	if (action_field != PLINK_CLOSE) {
@@ -202,8 +192,6 @@ index ea62abf..65bfa3a 100644
  		if (!elems.mesh_id || !elems.mesh_config) {
  			wpa_printf(MSG_DEBUG,
  				   "MPM: No Mesh ID or Mesh Configuration element");
-diff --git a/wpa_supplicant/wpa_supplicant.conf b/wpa_supplicant/wpa_supplicant.conf
-index 4291244..674978a 100644
 --- a/wpa_supplicant/wpa_supplicant.conf
 +++ b/wpa_supplicant/wpa_supplicant.conf
 @@ -150,6 +150,20 @@ ap_scan=1
@@ -227,6 +215,3 @@ index 4291244..674978a 100644
  # cert_in_cb - Whether to include a peer certificate dump in events
  # This controls whether peer certificates for authentication server and
  # its certificate chain are included in EAP peer certificate events. This is
--- 
-2.7.4
-

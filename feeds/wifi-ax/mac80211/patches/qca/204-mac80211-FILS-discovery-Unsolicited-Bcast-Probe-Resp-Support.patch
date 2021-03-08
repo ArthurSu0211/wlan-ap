@@ -1,6 +1,32 @@
+From 03be169dbbab15bf7d29f979d8341aed4b0acb99 Mon Sep 17 00:00:00 2001
+From: Aloka Dixit <alokad@codeaurora.org>
+Date: Tue, 1 Dec 2020 10:21:04 -0800
+Subject: [PATCH] mac80211: FILS discovery and unsolicited broadcast probe
+ response
+
+These features are used in 6GHz for in-band discovery.
+
+Signed-off-by: Aloka Dixit <alokad@codeaurora.org>
+---
+ drivers/net/wireless/ath/ath11k/mac.c |  68 +++++++++
+ drivers/net/wireless/ath/ath11k/wmi.c | 204 ++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/wmi.h |  46 ++++++
+ include/net/cfg80211.h                |  46 ++++++
+ include/net/mac80211.h                |  52 ++++++-
+ include/uapi/linux/nl80211.h          |  98 +++++++++++++
+ net/mac80211/cfg.c                    |  73 +++++++++
+ net/mac80211/ieee80211_i.h            |  14 ++
+ net/mac80211/tx.c                     |  51 +++++++
+ net/wireless/nl80211.c                | 120 +++++++++++++++
+ net/wireless/rdev-ops.h               |  24 +++
+ net/wireless/trace.h                  |  47 ++++++
+ 12 files changed, 841 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/ath/ath11k/mac.c b/drivers/net/wireless/ath/ath11k/mac.c
+index 460d0d1b4cd6..c39feb1bfad3 100644
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -2566,6 +2566,63 @@ static void ath11k_recalculate_mgmt_rate
+@@ -2566,6 +2566,63 @@ static void ath11k_recalculate_mgmt_rate(struct ath11k *ar,
  		ath11k_warn(ar->ab, "failed to set beacon tx rate %d\n", ret);
  }
  
@@ -64,7 +90,7 @@
  static void ath11k_mac_op_nss_bss_info_changed(struct ieee80211_hw *hw,
  					   struct ieee80211_vif *vif,
  					   u32 changed)
-@@ -2854,6 +2911,10 @@ static void ath11k_mac_op_bss_info_chang
+@@ -2854,6 +2911,10 @@ static void ath11k_mac_op_bss_info_changed(struct ieee80211_hw *hw,
  		}
  	}
  
@@ -75,9 +101,25 @@
  	mutex_unlock(&ar->conf_mutex);
  }
  
+@@ -7725,6 +7786,13 @@ static int __ath11k_mac_register(struct ath11k *ar)
+ 	ar->hw->wiphy->num_iftype_ext_capab =
+ 		ARRAY_SIZE(ath11k_iftypes_ext_capa);
+ 
++	if (ar->supports_6ghz) {
++		wiphy_ext_feature_set(ar->hw->wiphy,
++				      NL80211_EXT_FEATURE_FILS_DISCOVERY);
++		wiphy_ext_feature_set(ar->hw->wiphy,
++				      NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP);
++	}
++
+ 	ath11k_reg_init(ar);
+ 	ath11k_vendor_register(ar);
+ 
+diff --git a/drivers/net/wireless/ath/ath11k/wmi.c b/drivers/net/wireless/ath/ath11k/wmi.c
+index 1d82f77ab0e8..be9cf1d0a9e0 100644
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
-@@ -127,6 +127,10 @@ static const struct wmi_tlv_policy wmi_t
+@@ -127,6 +127,10 @@ static const struct wmi_tlv_policy wmi_tlv_policies[] = {
  		= { .min_len = sizeof(struct wmi_stats_event) },
  	[WMI_TAG_PDEV_CTL_FAILSAFE_CHECK_EVENT]
  		= { .min_len = sizeof(struct wmi_pdev_ctl_failsafe_chk_event) },
@@ -88,7 +130,7 @@
  	[WMI_TAG_TWT_ADD_DIALOG_COMPLETE_EVENT]
  		= { .min_len = sizeof(struct wmi_twt_add_dialog_event) },
  	[WMI_TAG_VDEV_DELETE_RESP_EVENT]
-@@ -3483,6 +3487,138 @@ int ath11k_wmi_send_bss_color_change_ena
+@@ -3483,6 +3487,138 @@ int ath11k_wmi_send_bss_color_change_enable_cmd(struct ath11k *ar, u32 vdev_id,
  	return ret;
  }
  
@@ -227,7 +269,7 @@
  static void
  ath11k_fill_band_to_mac_param(struct ath11k_base  *soc,
  			      struct wmi_host_pdev_band_to_mac *band_to_mac)
-@@ -7592,6 +7728,68 @@ static void ath11k_bcn_tx_status_event(s
+@@ -7592,6 +7728,68 @@ static void ath11k_bcn_tx_status_event(struct ath11k_base *ab, struct sk_buff *s
  }
  
  
@@ -296,7 +338,7 @@
  static void ath11k_wmi_tlv_op_rx(struct ath11k_base *ab, struct sk_buff *skb)
  {
  	struct wmi_cmd_hdr *cmd_hdr;
-@@ -7684,6 +7882,12 @@ static void ath11k_wmi_tlv_op_rx(struct
+@@ -7684,6 +7882,12 @@ static void ath11k_wmi_tlv_op_rx(struct ath11k_base *ab, struct sk_buff *skb)
  	case WMI_TWT_ADD_DIALOG_EVENTID:
  		ath11k_wmi_twt_add_dialog_event(ab, skb);
  		break;
@@ -309,6 +351,8 @@
  	/* add Unsupported events here */
  	case WMI_TBTTOFFSET_EXT_UPDATE_EVENTID:
  	case WMI_PEER_OPER_MODE_CHANGE_EVENTID:
+diff --git a/drivers/net/wireless/ath/ath11k/wmi.h b/drivers/net/wireless/ath/ath11k/wmi.h
+index 4ff691d3cb8a..487b7d2014aa 100644
 --- a/drivers/net/wireless/ath/ath11k/wmi.h
 +++ b/drivers/net/wireless/ath/ath11k/wmi.h
 @@ -349,6 +349,7 @@ enum wmi_tlv_cmd_id {
@@ -394,7 +438,7 @@
  struct target_resource_config {
  	u32 num_vdevs;
  	u32 num_peers;
-@@ -5659,6 +5700,11 @@ int ath11k_wmi_vdev_spectral_enable(stru
+@@ -5659,6 +5700,11 @@ int ath11k_wmi_vdev_spectral_enable(struct ath11k *ar, u32 vdev_id,
  				    u32 trigger, u32 enable);
  int ath11k_wmi_vdev_spectral_conf(struct ath11k *ar,
  				  struct ath11k_wmi_vdev_spectral_conf_param *param);
@@ -406,12 +450,15 @@
  int ath11k_wmi_pdev_m3_dump_enable(struct ath11k *ar, u32 enable);
  int ath11k_wmi_pdev_get_tpc_table_cmdid(struct ath11k *ar);
  void ath11k_wmi_free_tpc_stats_mem(struct ath11k *ar);
+diff --git a/include/net/cfg80211.h b/include/net/cfg80211.h
+index 4543c66ef3d8..6840042cc02f 100644
 --- a/include/net/cfg80211.h
 +++ b/include/net/cfg80211.h
-@@ -1070,6 +1070,39 @@ struct cfg80211_acl_data {
+@@ -1069,6 +1069,39 @@ struct cfg80211_acl_data {
+ 	struct mac_address mac_addrs[];
  };
  
- /**
++/**
 + * struct cfg80211_fils_discovery - FILS discovery parameters from
 + * IEEE Std 802.11ai-2016, Annex C.3 MIB detail.
 + *
@@ -444,10 +491,9 @@
 +	const u8 *tmpl;
 +};
 +
-+/**
+ /**
   * enum cfg80211_ap_settings_flags - AP settings flags
   *
-  * Used by cfg80211_ap_settings
 @@ -1116,6 +1149,8 @@ enum cfg80211_ap_settings_flags {
   * @he_obss_pd: OBSS Packet Detection settings
   * @he_bss_color: BSS Color settings
@@ -466,6 +512,31 @@
  };
  
  /**
+@@ -3829,6 +3866,9 @@ struct mgmt_frame_regs {
+  *	This callback may sleep.
+  * @reset_tid_config: Reset TID specific configuration for the peer, for the
+  *	given TIDs. This callback may sleep.
++ * @set_fils_discovery: Set FILS discovery transmission parameters.
++ * @set_unsol_bcast_probe_resp: Set unsolicited broadcast probe response
++ *	transmission parameters.
+  */
+ struct cfg80211_ops {
+ 	int	(*suspend)(struct wiphy *wiphy, struct cfg80211_wowlan *wow);
+@@ -4157,6 +4197,12 @@ struct cfg80211_ops {
+ 				  struct cfg80211_tid_config *tid_conf);
+ 	int	(*reset_tid_config)(struct wiphy *wiphy, struct net_device *dev,
+ 				    const u8 *peer, u8 tids);
++	int	(*set_fils_discovery)(struct wiphy *wiphy,
++				      struct net_device *dev,
++				      struct cfg80211_fils_discovery *params);
++	int	(*set_unsol_bcast_probe_resp)(struct wiphy *wiphy,
++					      struct net_device *dev,
++					      struct cfg80211_unsol_bcast_probe_resp *params);
+ };
+ 
+ /*
+diff --git a/include/net/mac80211.h b/include/net/mac80211.h
+index 56bc4371331a..55fc72cc54e3 100644
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
 @@ -317,6 +317,9 @@ struct ieee80211_vif_chanctx_switch {
@@ -487,10 +558,11 @@
  
  	/* when adding here, make sure to change ieee80211_reconfig */
  };
-@@ -505,6 +510,18 @@ struct ieee80211_ftm_responder_params {
+@@ -504,6 +509,18 @@ struct ieee80211_ftm_responder_params {
+ 	size_t civicloc_len;
  };
  
- /**
++/**
 + * struct ieee80211_fils_discovery - FILS discovery parameters from
 + * IEEE Std 802.11ai-2016, Annex C.3 MIB detail.
 + *
@@ -502,10 +574,9 @@
 +	u32 max_interval;
 +};
 +
-+/**
+ /**
   * struct ieee80211_bss_conf - holds the BSS's changing parameters
   *
-  * This structure keeps information about a BSS (and an association
 @@ -622,6 +639,9 @@ struct ieee80211_ftm_responder_params {
   * @he_obss_pd: OBSS Packet Detection parameters.
   * @he_bss_color: BSS coloring settings, if BSS supports HE
@@ -525,7 +596,7 @@
  };
  
  /**
-@@ -1261,7 +1283,7 @@ ieee80211_tx_info_clear_status(struct ie
+@@ -1261,7 +1283,7 @@ ieee80211_tx_info_clear_status(struct ieee80211_tx_info *info)
   * @RX_FLAG_AMPDU_EOF_BIT_KNOWN: The EOF value is known
   * @RX_FLAG_RADIOTAP_HE: HE radiotap data is present
   *	(&struct ieee80211_radiotap_he, mac80211 will fill in
@@ -534,7 +605,7 @@
   *	 - DATA3_DATA_MCS
   *	 - DATA3_DATA_DCM
   *	 - DATA3_CODING
-@@ -1269,7 +1291,7 @@ ieee80211_tx_info_clear_status(struct ie
+@@ -1269,7 +1291,7 @@ ieee80211_tx_info_clear_status(struct ieee80211_tx_info *info)
   *	 - DATA5_DATA_BW_RU_ALLOC
   *	 - DATA6_NSTS
   *	 - DATA3_STBC
@@ -543,9 +614,9 @@
   *	from the RX info data, so leave those zeroed when building this data)
   * @RX_FLAG_RADIOTAP_HE_MU: HE MU radiotap data is present
   *	(&struct ieee80211_radiotap_he_mu)
-@@ -6640,4 +6662,30 @@ void ieee80211_update_muedca_params(stru
+@@ -6641,4 +6663,30 @@ void ieee80211_update_muedca_params(struct ieee80211_hw *hw,
  				    struct ieee80211_mu_edca_param_set
- 				    *params);
+ 				    *params, gfp_t gfp);
  
 +/**
 + * ieee80211_get_fils_discovery_tmpl - Get FILS discovery template.
@@ -574,11 +645,38 @@
 +					  struct ieee80211_vif *vif);
 +
  #endif /* MAC80211_H */
+diff --git a/include/uapi/linux/nl80211.h b/include/uapi/linux/nl80211.h
+index b2646c4d376d..19bfa567e7d8 100644
 --- a/include/uapi/linux/nl80211.h
 +++ b/include/uapi/linux/nl80211.h
-@@ -2524,6 +2524,14 @@ enum nl80211_commands {
-  * @NL80211_ATTR_HE_MUEDCA_PARAMS: MU-EDCA AC parameters for the
-  *	%NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS command.
+@@ -1183,6 +1183,14 @@
+  *	This event is used to update dynamic MU-EDCA parameters in Beacon frame,
+  *	coming from driver and now need to be reflected in Beacon frame.
+  *
++ *@NL80211_CMD_SET_FILS_DISCOVERY: Set FILS discovery transmission parameters.
++ *	Inputs to the command are provided using the attribute
++ *	%NL80211_ATTR_FILS_DISCOVERY.
++ *
++ *@NL80211_CMD_SET_UNSOL_BCAST_PROBE_RESP: Set unsolicited broadcast
++ *	probe response transmission parameters. Inputs to the command are
++ *	provided using the attribute %NL80211_ATTR_UNSOL_BCAST_PROBE_RESP.
++ *
+  * @NL80211_CMD_MAX: highest used command number
+  * @__NL80211_CMD_AFTER_LAST: internal use
+  */
+@@ -1415,6 +1423,9 @@ enum nl80211_commands {
+ 
+ 	NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS,
+ 
++	NL80211_CMD_SET_FILS_DISCOVERY,
++	NL80211_CMD_SET_UNSOL_BCAST_PROBE_RESP,
++
+ 	/* add new commands above here */
+ 
+ 	/* used to define NL80211_CMD_MAX below */
+@@ -2521,6 +2532,20 @@ enum nl80211_commands {
+  * @NL80211_ATTR_HE_6GHZ_CAPABILITY: HE 6 GHz Band Capability element (from
+  *	association request when used with NL80211_CMD_NEW_STATION).
   *
 + * @NL80211_ATTR_FILS_DISCOVERY: Optional parameter to configure FILS
 + *	discovery. It is a nested attribute, see
@@ -588,22 +686,54 @@
 + *	unsolicited broadcast probe response. It is a nested attribute, see
 + *	&enum nl80211_unsol_bcast_probe_resp_attributes.
 + *
-  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
-  * @NL80211_ATTR_MAX: highest attribute number currently defined
-  * @__NL80211_ATTR_AFTER_LAST: internal use
-@@ -3007,6 +3015,11 @@ enum nl80211_attrs {
++ * @NL80211_ATTR_S1G_CAPABILITY: S1G Capability information element (from
++ *	association request when used with NL80211_CMD_NEW_STATION)
++ * @NL80211_ATTR_S1G_CAPABILITY_MASK: S1G Capability Information element
++ *	override mask. Used with NL80211_ATTR_S1G_CAPABILITY in
++ *	NL80211_CMD_ASSOCIATE or NL80211_CMD_CONNECT.
++ *
+  * @NL80211_ATTR_HE_MUEDCA_PARAMS: MU-EDCA AC parameters for the
+  *	%NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS command.
+  *
+@@ -3006,7 +3031,15 @@ enum nl80211_attrs {
+ 
  	NL80211_ATTR_HE_6GHZ_CAPABILITY,
  
- 	NL80211_ATTR_HE_MUEDCA_PARAMS,
-+
 +	NL80211_ATTR_FILS_DISCOVERY,
 +
 +	NL80211_ATTR_UNSOL_BCAST_PROBE_RESP,
 +
++	NL80211_ATTR_S1G_CAPABILITY,
++	NL80211_ATTR_S1G_CAPABILITY_MASK,
++
+ 	NL80211_ATTR_HE_MUEDCA_PARAMS,
++
  	/* add attributes here, update the policy in nl80211.c */
  
  	__NL80211_ATTR_AFTER_LAST,
-@@ -7017,4 +7030,61 @@ enum nl80211_iftype_akm_attributes {
+@@ -5862,6 +5895,12 @@ enum nl80211_feature_flags {
+  * @NL80211_EXT_FEATURE_WIDE_BAND_SCAN: Driver/device supports wide band scan
+  *	 on a frequency along with its corresponding phymode (40Mhz, 80Mhz)
+  *
++ * @NL80211_EXT_FEATURE_FILS_DISCOVERY: Driver/device supports FILS discovery
++ *	frames transmission
++ *
++ * @NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP: Driver/device supports
++ *	unsolicited broadcast probe response transmission
++ *
+  * @NUM_NL80211_EXT_FEATURES: number of extended features.
+  * @MAX_NL80211_EXT_FEATURES: highest extended feature index.
+  */
+@@ -5920,6 +5959,8 @@ enum nl80211_ext_feature_index {
+ 	NL80211_EXT_FEATURE_OPERATING_CHANNEL_VALIDATION,
+ 	NL80211_EXT_FEATURE_4WAY_HANDSHAKE_AP_PSK,
+ 	NL80211_EXT_FEATURE_WIDE_BAND_SCAN,
++	NL80211_EXT_FEATURE_FILS_DISCOVERY,
++	NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP,
+ 
+ 	/* add new features before the definition below */
+ 	NUM_NL80211_EXT_FEATURES,
+@@ -7017,4 +7058,61 @@ enum nl80211_iftype_akm_attributes {
  	NL80211_IFTYPE_AKM_ATTR_MAX = __NL80211_IFTYPE_AKM_ATTR_LAST - 1,
  };
  
@@ -665,17 +795,21 @@
 +		__NL80211_UNSOL_BCAST_PROBE_RESP_LAST - 1
 +};
  #endif /* __LINUX_NL80211_H */
+diff --git a/net/mac80211/cfg.c b/net/mac80211/cfg.c
+index 117d138287f6..86ca7501b79a 100644
 --- a/net/mac80211/cfg.c
 +++ b/net/mac80211/cfg.c
-@@ -838,6 +838,59 @@ static int ieee80211_set_probe_resp(stru
+@@ -838,6 +838,64 @@ static int ieee80211_set_probe_resp(struct ieee80211_sub_if_data *sdata,
  	return 0;
  }
  
-+static int ieee80211_set_fils_discovery(struct ieee80211_sub_if_data *sdata,
++static int ieee80211_set_fils_discovery(struct wiphy *wiphy,
++					struct net_device *dev,
 +					struct cfg80211_fils_discovery *params)
 +{
 +	struct fils_discovery_data *new, *old = NULL;
 +	struct ieee80211_fils_discovery *fd;
++	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
 +
 +	fd = &sdata->vif.bss_conf.fils_discovery;
 +	fd->min_interval = params->min_interval;
@@ -695,17 +829,19 @@
 +	if (old)
 +		kfree_rcu(old, rcu_head);
 +
++	ieee80211_bss_info_change_notify(sdata, BSS_CHANGED_FILS_DISCOVERY);
 +	return 0;
 +}
 +
 +static int
-+ieee80211_set_unsol_bcast_probe_resp(struct ieee80211_sub_if_data *sdata,
++ieee80211_set_unsol_bcast_probe_resp(struct wiphy *wiphy,
++				     struct net_device *dev,
 +				     struct cfg80211_unsol_bcast_probe_resp *params)
 +{
 +	struct unsol_bcast_probe_resp_data *new, *old = NULL;
++	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
 +
-+	sdata->vif.bss_conf.unsol_bcast_probe_resp_interval =
-+							params->interval;
++	sdata->vif.bss_conf.unsol_bcast_probe_resp_interval = params->interval;
 +
 +	if (!params->tmpl || !params->tmpl_len) /* Optional template */
 +		return 0;
@@ -721,37 +857,14 @@
 +	if (old)
 +		kfree_rcu(old, rcu_head);
 +
++	ieee80211_bss_info_change_notify(sdata, BSS_CHANGED_UNSOL_BCAST_PROBE_RESP);
 +	return 0;
 +}
 +
  static int ieee80211_set_ftm_responder_params(
  				struct ieee80211_sub_if_data *sdata,
  				const u8 *lci, size_t lci_len,
-@@ -1111,6 +1164,23 @@ static int ieee80211_start_ap(struct wip
- 	}
- 	changed |= err;
- 
-+	err = ieee80211_set_fils_discovery(sdata, &params->fils_discovery);
-+	if (err < 0) {
-+		ieee80211_vif_release_channel(sdata);
-+		return err;
-+	} else if (err == 0) {
-+		changed |= BSS_CHANGED_FILS_DISCOVERY;
-+	}
-+
-+	err = ieee80211_set_unsol_bcast_probe_resp(sdata,
-+						   &params->unsol_bcast_probe_resp);
-+	if (err < 0) {
-+		ieee80211_vif_release_channel(sdata);
-+		return err;
-+	} else if (err == 0) {
-+		changed |= BSS_CHANGED_UNSOL_BCAST_PROBE_RESP;
-+	}
-+
- 	err = drv_start_ap(sdata->local, sdata);
- 	if (err) {
- 		old = sdata_dereference(sdata->u.ap.beacon, sdata);
-@@ -1166,6 +1236,8 @@ static int ieee80211_stop_ap(struct wiph
+@@ -1166,6 +1224,8 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev)
  	struct ieee80211_local *local = sdata->local;
  	struct beacon_data *old_beacon;
  	struct probe_resp *old_probe_resp;
@@ -760,7 +873,7 @@
  	struct cfg80211_chan_def chandef;
  
  	sdata_assert_lock(sdata);
-@@ -1174,6 +1246,11 @@ static int ieee80211_stop_ap(struct wiph
+@@ -1174,6 +1234,11 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev)
  	if (!old_beacon)
  		return -ENOENT;
  	old_probe_resp = sdata_dereference(sdata->u.ap.probe_resp, sdata);
@@ -772,7 +885,7 @@
  
  	/* abort any running channel switch */
  	mutex_lock(&local->mtx);
-@@ -1197,9 +1274,15 @@ static int ieee80211_stop_ap(struct wiph
+@@ -1197,9 +1262,15 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev)
  	/* remove beacon and probe response */
  	RCU_INIT_POINTER(sdata->u.ap.beacon, NULL);
  	RCU_INIT_POINTER(sdata->u.ap.probe_resp, NULL);
@@ -788,6 +901,15 @@
  
  	kfree(sdata->vif.bss_conf.ftmr_params);
  	sdata->vif.bss_conf.ftmr_params = NULL;
+@@ -4118,4 +4189,6 @@ const struct cfg80211_ops mac80211_config_ops = {
+ 	.probe_mesh_link = ieee80211_probe_mesh_link,
+ 	.set_tid_config = ieee80211_set_tid_config,
+ 	.reset_tid_config = ieee80211_reset_tid_config,
++	.set_fils_discovery = ieee80211_set_fils_discovery,
++	.set_unsol_bcast_probe_resp = ieee80211_set_unsol_bcast_probe_resp,
+ };
+diff --git a/net/mac80211/ieee80211_i.h b/net/mac80211/ieee80211_i.h
+index 275266674089..37920401b9bc 100644
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
 @@ -271,6 +271,18 @@ struct probe_resp {
@@ -818,6 +940,8 @@
  
  	/* to be used after channel switch. */
  	struct cfg80211_beacon_data *next_beacon;
+diff --git a/net/mac80211/tx.c b/net/mac80211/tx.c
+index 201bbef365bc..57eb1b26bac3 100644
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
 @@ -5011,6 +5011,57 @@ out:
@@ -878,9 +1002,11 @@
  struct sk_buff *ieee80211_pspoll_get(struct ieee80211_hw *hw,
  				     struct ieee80211_vif *vif)
  {
+diff --git a/net/wireless/nl80211.c b/net/wireless/nl80211.c
+index 50305eea3219..189e60212886 100644
 --- a/net/wireless/nl80211.c
 +++ b/net/wireless/nl80211.c
-@@ -441,6 +441,21 @@ nl80211_tid_config_attr_policy[NL80211_T
+@@ -441,6 +441,21 @@ nl80211_tid_config_attr_policy[NL80211_TID_CONFIG_ATTR_MAX + 1] = {
  			NLA_POLICY_NESTED(nl80211_txattr_policy),
  };
  
@@ -902,7 +1028,7 @@
  static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
  	[0] = { .strict_start_type = NL80211_ATTR_HE_OBSS_PD },
  	[NL80211_ATTR_WIPHY] = { .type = NLA_U32 },
-@@ -739,6 +754,10 @@ static const struct nla_policy nl80211_p
+@@ -739,6 +754,10 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
  		.type = NLA_EXACT_LEN,
  		.len = sizeof(struct ieee80211_he_6ghz_capa),
  	},
@@ -913,7 +1039,7 @@
  };
  
  /* policy for the key attributes */
-@@ -854,6 +873,7 @@ nl80211_bss_select_policy[NL80211_BSS_SE
+@@ -854,6 +873,7 @@ nl80211_bss_select_policy[NL80211_BSS_SELECT_ATTR_MAX + 1] = {
  	[NL80211_BSS_SELECT_ATTR_RSSI_ADJUST] = {
  		.len = sizeof(struct nl80211_bss_select_rssi_adjust)
  	},
@@ -921,19 +1047,29 @@
  };
  
  /* policy for NAN function attributes */
-@@ -4837,6 +4857,64 @@ static int nl80211_parse_he_bss_color(st
+@@ -4837,6 +4857,90 @@ static int nl80211_parse_he_bss_color(struct nlattr *attrs,
  	return 0;
  }
  
-+static int nl80211_parse_fils_discovery(struct nlattr *attrs,
-+					struct cfg80211_ap_settings *params)
++static int nl80211_set_fils_discovery(struct sk_buff *skb,
++					struct genl_info *info)
 +{
++	struct cfg80211_registered_device *rdev = info->user_ptr[0];
++	struct net_device *dev = info->user_ptr[1];
++	struct wireless_dev *wdev = dev->ieee80211_ptr;
++	struct cfg80211_fils_discovery params;
 +	struct nlattr *tmpl;
 +	struct nlattr *tb[NL80211_FILS_DISCOVERY_MAX + 1];
 +	int ret;
-+	struct cfg80211_fils_discovery *fd = &params->fils_discovery;
 +
-+	ret = nla_parse_nested(tb, NL80211_FILS_DISCOVERY_MAX, attrs,
++	if (!rdev->ops->set_fils_discovery ||
++	    !wiphy_ext_feature_isset(&rdev->wiphy,
++				     NL80211_EXT_FEATURE_FILS_DISCOVERY)) {
++		return -EOPNOTSUPP;
++	}
++
++	ret = nla_parse_nested(tb, NL80211_FILS_DISCOVERY_MAX,
++			       info->attrs[NL80211_ATTR_FILS_DISCOVERY],
 +			       fils_discovery_policy, NULL);
 +	if (ret)
 +		return ret;
@@ -942,29 +1078,41 @@
 +	    !tb[NL80211_FILS_DISCOVERY_INT_MAX])
 +		return -EINVAL;
 +
-+	fd->min_interval = nla_get_u32(tb[NL80211_FILS_DISCOVERY_INT_MIN]);
-+	fd->max_interval = nla_get_u32(tb[NL80211_FILS_DISCOVERY_INT_MAX]);
++	memset(&params, 0, sizeof(params));
++	params.min_interval = nla_get_u32(tb[NL80211_FILS_DISCOVERY_INT_MIN]);
++	params.max_interval = nla_get_u32(tb[NL80211_FILS_DISCOVERY_INT_MAX]);
 +
 +	tmpl = tb[NL80211_FILS_DISCOVERY_TMPL];
 +	if (tmpl) {
-+		fd->tmpl = nla_data(tmpl);
-+		fd->tmpl_len = nla_len(tmpl);
++		params.tmpl = nla_data(tmpl);
++		params.tmpl_len = nla_len(tmpl);
 +	}
 +
-+	return 0;
++	wdev_lock(wdev);
++	ret = rdev_set_fils_discovery(rdev, dev, &params);
++	wdev_unlock(wdev);
++	return ret;
 +}
 +
-+static int
-+nl80211_parse_unsol_bcast_probe_resp(struct nlattr *attrs,
-+				     struct cfg80211_ap_settings *params)
++static int nl80211_set_unsol_bcast_probe_resp(struct sk_buff *skb,
++						struct genl_info *info)
 +{
++	struct cfg80211_registered_device *rdev = info->user_ptr[0];
++	struct net_device *dev = info->user_ptr[1];
++	struct wireless_dev *wdev = dev->ieee80211_ptr;
++	struct cfg80211_unsol_bcast_probe_resp params;
 +	struct nlattr *tmpl;
 +	struct nlattr *tb[NL80211_UNSOL_BCAST_PROBE_RESP_MAX + 1];
 +	int ret;
-+	struct cfg80211_unsol_bcast_probe_resp *presp =
-+					&params->unsol_bcast_probe_resp;
 +
-+	ret = nla_parse_nested(tb, NL80211_UNSOL_BCAST_PROBE_RESP_MAX, attrs,
++	if (!rdev->ops->set_unsol_bcast_probe_resp ||
++	    !wiphy_ext_feature_isset(&rdev->wiphy,
++				     NL80211_EXT_FEATURE_UNSOL_BCAST_PROBE_RESP)) {
++		return -EOPNOTSUPP;
++	}
++
++	ret = nla_parse_nested(tb, NL80211_UNSOL_BCAST_PROBE_RESP_MAX,
++			       info->attrs[NL80211_ATTR_UNSOL_BCAST_PROBE_RESP],
 +			       unsol_bcast_probe_resp_policy, NULL);
 +	if (ret)
 +		return ret;
@@ -972,39 +1120,138 @@
 +	if (!tb[NL80211_UNSOL_BCAST_PROBE_RESP_INT])
 +		return -EINVAL;
 +
-+	presp->interval = nla_get_u32(tb[NL80211_UNSOL_BCAST_PROBE_RESP_INT]);
++	memset(&params, 0, sizeof(params));
++	params.interval = nla_get_u32(tb[NL80211_UNSOL_BCAST_PROBE_RESP_INT]);
 +
 +	tmpl = tb[NL80211_UNSOL_BCAST_PROBE_RESP_TMPL];
 +	if (tmpl) {
-+		presp->tmpl = nla_data(tmpl);
-+		presp->tmpl_len = nla_len(tmpl);
++		params.tmpl = nla_data(tmpl);
++		params.tmpl_len = nla_len(tmpl);
 +	}
 +
-+	return 0;
++	wdev_lock(wdev);
++	ret = rdev_set_unsol_bcast_probe_resp(rdev, dev, &params);
++	wdev_unlock(wdev);
++	return ret;
 +}
 +
  static void nl80211_check_ap_rate_selectors(struct cfg80211_ap_settings *params,
  					    const u8 *rates)
  {
-@@ -5145,6 +5223,21 @@ static int nl80211_start_ap(struct sk_bu
- 			goto out;
- 	}
+@@ -15398,6 +15502,22 @@ static __genl_const struct genl_ops nl80211_ops[] = {
+ 		.internal_flags = NL80211_FLAG_NEED_NETDEV |
+ 				  NL80211_FLAG_NEED_RTNL,
+ 	},
++	{
++		.cmd = NL80211_CMD_SET_FILS_DISCOVERY,
++		.validate = GENL_DONT_VALIDATE_STRICT | GENL_DONT_VALIDATE_DUMP,
++		.doit = nl80211_set_fils_discovery,
++		.flags = GENL_UNS_ADMIN_PERM,
++		.internal_flags = NL80211_FLAG_NEED_NETDEV_UP |
++				  NL80211_FLAG_NEED_RTNL,
++	},
++	{
++		.cmd = NL80211_CMD_SET_UNSOL_BCAST_PROBE_RESP,
++		.validate = GENL_DONT_VALIDATE_STRICT | GENL_DONT_VALIDATE_DUMP,
++		.doit = nl80211_set_unsol_bcast_probe_resp,
++		.flags = GENL_UNS_ADMIN_PERM,
++		.internal_flags = NL80211_FLAG_NEED_NETDEV_UP |
++				  NL80211_FLAG_NEED_RTNL,
++	},
+ };
  
-+	if (info->attrs[NL80211_ATTR_FILS_DISCOVERY]) {
-+		err = nl80211_parse_fils_discovery(info->attrs[NL80211_ATTR_FILS_DISCOVERY],
-+						   &params);
-+		if (err)
-+			return err;
-+	}
-+
-+	if (info->attrs[NL80211_ATTR_UNSOL_BCAST_PROBE_RESP]) {
-+		err = nl80211_parse_unsol_bcast_probe_resp(
-+			info->attrs[NL80211_ATTR_UNSOL_BCAST_PROBE_RESP],
-+			&params);
-+		if (err)
-+			return err;
-+	}
-+
- 	nl80211_calculate_ap_params(&params);
+ static struct genl_family nl80211_fam __genl_ro_after_init = {
+diff --git a/net/wireless/rdev-ops.h b/net/wireless/rdev-ops.h
+index 250c175d248d..f9684b1aec44 100644
+--- a/net/wireless/rdev-ops.h
++++ b/net/wireless/rdev-ops.h
+@@ -1356,4 +1356,28 @@ static inline int rdev_reset_tid_config(struct cfg80211_registered_device *rdev,
+ 	return ret;
+ }
  
- 	if (info->attrs[NL80211_ATTR_EXTERNAL_AUTH_SUPPORT])
++static inline int rdev_set_fils_discovery(struct cfg80211_registered_device *rdev,
++				    struct net_device *dev,
++				    struct cfg80211_fils_discovery *params)
++{
++	int ret;
++
++	trace_rdev_set_fils_discovery(&rdev->wiphy, dev, params);
++	ret = rdev->ops->set_fils_discovery(&rdev->wiphy, dev, params);
++	trace_rdev_return_int(&rdev->wiphy, ret);
++	return ret;
++}
++
++static inline int rdev_set_unsol_bcast_probe_resp(struct cfg80211_registered_device *rdev,
++				    struct net_device *dev,
++				    struct cfg80211_unsol_bcast_probe_resp *params)
++{
++	int ret;
++
++	trace_rdev_set_unsol_bcast_probe_resp(&rdev->wiphy, dev, params);
++	ret = rdev->ops->set_unsol_bcast_probe_resp(&rdev->wiphy, dev, params);
++	trace_rdev_return_int(&rdev->wiphy, ret);
++	return ret;
++}
++
+ #endif /* __CFG80211_RDEV_OPS */
+diff --git a/net/wireless/trace.h b/net/wireless/trace.h
+index 0a29cd155baa..ac0414648f7c 100644
+--- a/net/wireless/trace.h
++++ b/net/wireless/trace.h
+@@ -3547,6 +3547,53 @@ TRACE_EVENT(rdev_reset_tid_config,
+ 	TP_printk(WIPHY_PR_FMT ", " NETDEV_PR_FMT ", peer: " MAC_PR_FMT ", tids: 0x%x",
+ 		  WIPHY_PR_ARG, NETDEV_PR_ARG, MAC_PR_ARG(peer), __entry->tids)
+ );
++
++TRACE_EVENT(rdev_set_fils_discovery,
++	TP_PROTO(struct wiphy *wiphy, struct net_device *netdev,
++		 struct cfg80211_fils_discovery *params),
++	TP_ARGS(wiphy, netdev, params),
++	TP_STRUCT__entry(
++		WIPHY_ENTRY
++		NETDEV_ENTRY
++		__field(u32, min_interval)
++		__field(u32, max_interval)
++		__field(size_t, tmpl_len)
++	),
++	TP_fast_assign(
++		WIPHY_ASSIGN;
++		NETDEV_ASSIGN;
++		__entry->min_interval = params->min_interval;
++		__entry->max_interval = params->max_interval;
++		__entry->tmpl_len = params->tmpl_len;
++	),
++	TP_printk(WIPHY_PR_FMT ", " NETDEV_PR_FMT
++		  ", minimum interval: %u, maximum interval: %u, template length: %zu",
++		  WIPHY_PR_ARG, NETDEV_PR_ARG,
++		  __entry->min_interval, __entry->max_interval,
++		  __entry->tmpl_len)
++);
++
++TRACE_EVENT(rdev_set_unsol_bcast_probe_resp,
++	TP_PROTO(struct wiphy *wiphy, struct net_device *netdev,
++		 struct cfg80211_unsol_bcast_probe_resp *params),
++	TP_ARGS(wiphy, netdev, params),
++	TP_STRUCT__entry(
++		WIPHY_ENTRY
++		NETDEV_ENTRY
++		__field(u32, interval)
++		__field(size_t, tmpl_len)
++	),
++	TP_fast_assign(
++		WIPHY_ASSIGN;
++		NETDEV_ASSIGN;
++		__entry->interval = params->interval;
++		__entry->tmpl_len = params->tmpl_len;
++	),
++	TP_printk(WIPHY_PR_FMT ", " NETDEV_PR_FMT
++		  ", interval: %u, template length: %zu",
++		  WIPHY_PR_ARG, NETDEV_PR_ARG,
++		  __entry->interval, __entry->tmpl_len)
++);
+ #endif /* !__RDEV_OPS_TRACE || TRACE_HEADER_MULTI_READ */
+ 
+ #undef TRACE_INCLUDE_PATH
+-- 
+2.25.0
+

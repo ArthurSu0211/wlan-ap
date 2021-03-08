@@ -770,7 +770,17 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	.configure_filter		= ath11k_mac_op_configure_filter,
  	.hw_scan                        = ath11k_mac_op_hw_scan,
  	.cancel_hw_scan                 = ath11k_mac_op_cancel_hw_scan,
-@@ -7453,6 +7551,9 @@ static int __ath11k_mac_register(struct
+@@ -7386,7 +7484,8 @@ static int __ath11k_mac_register(struct
+ 		ieee80211_hw_set(ar->hw, TX_AMPDU_SETUP_IN_HW);
+ 		ieee80211_hw_set(ar->hw, SUPPORTS_REORDERING_BUFFER);
+ 		ieee80211_hw_set(ar->hw, SUPPORTS_AMSDU_IN_AMPDU);
+-		ieee80211_hw_set(ar->hw, USES_RSS);
++		if(!ab->nss.enabled)
++			ieee80211_hw_set(ar->hw, USES_RSS);
+ 	}
+ 
+ 	ar->hw->wiphy->features |= NL80211_FEATURE_STATIC_SMPS;
+@@ -7453,6 +7552,9 @@ static int __ath11k_mac_register(struct
  		ieee80211_hw_set(ar->hw, SW_CRYPTO_CONTROL);
  	}
  

@@ -33,7 +33,32 @@
  		.data_type	= QMI_EOTI,
  		.array_type	= NO_ARRAY,
  		.tlv_type	= QMI_COMMON_TLV_TYPE,
-@@ -1769,6 +1788,87 @@ static struct qmi_elem_info qmi_wlanfw_c
+@@ -693,6 +712,24 @@ static struct qmi_elem_info qmi_wlanfw_i
+ 					   cal_done_enable),
+ 	},
+ 	{
++		.data_type      = QMI_OPT_FLAG,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x20,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++					   m3_dump_upload_req_enable_valid),
++	},
++	{
++		.data_type      = QMI_UNSIGNED_1_BYTE,
++		.elem_len       = 1,
++		.elem_size      = sizeof(u8),
++		.array_type     = NO_ARRAY,
++		.tlv_type       = 0x20,
++		.offset         = offsetof(struct qmi_wlanfw_ind_register_req_msg_v01,
++					   m3_dump_upload_req_enable),
++	},
++	{
+ 		.data_type	= QMI_EOTI,
+ 		.array_type	= NO_ARRAY,
+ 		.tlv_type	= QMI_COMMON_TLV_TYPE,
+@@ -1769,6 +1806,87 @@ static struct qmi_elem_info qmi_wlanfw_c
  	},
  };
  
@@ -121,7 +146,7 @@
  int wlfw_send_qdss_trace_config_download_req(struct ath11k_base *ab,
  					     const u8 *buffer, unsigned int file_len)
  {
-@@ -2030,6 +2130,8 @@ static int ath11k_qmi_fw_ind_register_se
+@@ -2030,6 +2148,8 @@ static int ath11k_qmi_fw_ind_register_se
  	req->qdss_trace_free_enable = 1;
  	req->pin_connect_result_enable_valid = 0;
  	req->pin_connect_result_enable = 0;
@@ -130,7 +155,7 @@
  
  	ret = qmi_txn_init(handle, &txn,
  			   qmi_wlanfw_ind_register_resp_msg_v01_ei, resp);
-@@ -2220,6 +2322,24 @@ static int ath11k_qmi_assign_target_mem_
+@@ -2222,6 +2342,24 @@ static int ath11k_qmi_assign_target_mem_
  			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
  			idx++;
  			break;
@@ -155,7 +180,7 @@
  		default:
  			ath11k_warn(ab, "qmi ignore invalid mem req type %d\n",
  				    ab->qmi.target_mem[i].type);
-@@ -2803,6 +2923,123 @@ int ath11k_qmi_process_coldboot_calibrat
+@@ -2805,6 +2943,123 @@ int ath11k_qmi_process_coldboot_calibrat
  	return 0;
  }
  
@@ -279,7 +304,7 @@
  static int
  ath11k_qmi_driver_event_post(struct ath11k_qmi *qmi,
  			     enum ath11k_qmi_event_type type,
-@@ -2962,6 +3199,30 @@ static void ath11k_qmi_msg_cold_boot_cal
+@@ -2964,6 +3219,30 @@ static void ath11k_qmi_msg_cold_boot_cal
  	ath11k_dbg(ab, ATH11K_DBG_QMI, "qmi cold boot calibration done\n");
  }
  
@@ -310,7 +335,7 @@
  static const struct qmi_msg_handler ath11k_qmi_msg_handlers[] = {
  	{
  		.type = QMI_INDICATION,
-@@ -2992,6 +3253,14 @@ static const struct qmi_msg_handler ath1
+@@ -2994,6 +3273,14 @@ static const struct qmi_msg_handler ath1
  			sizeof(struct qmi_wlanfw_fw_cold_cal_done_ind_msg_v01),
  		.fn = ath11k_qmi_msg_cold_boot_cal_done_cb,
  	},
@@ -325,7 +350,7 @@
  };
  
  static int ath11k_qmi_ops_new_server(struct qmi_handle *qmi_hdl,
-@@ -3082,6 +3351,9 @@ static void ath11k_qmi_driver_event_work
+@@ -3084,6 +3371,9 @@ static void ath11k_qmi_driver_event_work
  			break;
  		case ATH11K_QMI_EVENT_COLD_BOOT_CAL_DONE:
  			break;
@@ -458,7 +483,7 @@
  struct ath11k_per_peer_tx_stats {
 --- a/drivers/net/wireless/ath/ath11k/debug.c
 +++ b/drivers/net/wireless/ath/ath11k/debug.c
-@@ -1714,6 +1714,68 @@ static const struct file_operations fops
+@@ -1779,6 +1779,68 @@ static const struct file_operations fops
  	.open = simple_open
  };
  
@@ -527,7 +552,7 @@
  int ath11k_debug_register(struct ath11k *ar)
  {
  	struct ath11k_base *ab = ar->ab;
-@@ -1773,6 +1835,10 @@ int ath11k_debug_register(struct ath11k
+@@ -1842,6 +1904,10 @@ int ath11k_debug_register(struct ath11k
  				    &ar->dfs_block_radar_events);
  	}
  
@@ -540,7 +565,7 @@
  
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
-@@ -7334,6 +7334,36 @@ int ath11k_wmi_simulate_radar(struct ath
+@@ -7343,6 +7343,36 @@ int ath11k_wmi_simulate_radar(struct ath
  	return ath11k_wmi_send_unit_test_cmd(ar, wmi_ut, dfs_args);
  }
  
@@ -607,7 +632,7 @@
  struct wmi_unit_test_cmd {
  	u32 tlv_header;
  	u32 vdev_id;
-@@ -5395,4 +5409,5 @@ int ath11k_wmi_vdev_spectral_enable(stru
+@@ -5407,4 +5421,5 @@ int ath11k_wmi_vdev_spectral_enable(stru
  				    u32 trigger, u32 enable);
  int ath11k_wmi_vdev_spectral_conf(struct ath11k *ar,
  				  struct ath11k_wmi_vdev_spectral_conf_param *param);

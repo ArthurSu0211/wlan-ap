@@ -1,0 +1,57 @@
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/Kconfig
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/Kconfig
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/Kconfig
+@@ -35,6 +35,7 @@ config ATH11K_PCI
+ 	depends on MHI_BUS
+ 	depends on QRTR
+ 	depends on QRTR_MHI
++	default m
+ 	help
+ 	  This module adds support for PCIE bus
+ 
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/ahb.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
+@@ -755,31 +755,6 @@ static const struct ath11k_hif_ops ath11
+ 	.config_irq = ath11k_ahb_config_irq,
+ };
+ 
+-static const struct ath11k_hif_ops ath11k_internal_pci_hif_ops = {
+-	.start = ath11k_pci_start,
+-	.stop = ath11k_pci_stop,
+-	.read32 = ath11k_pci_read32,
+-	.write32 = ath11k_pci_write32,
+-	.power_down = ath11k_ahb_power_down,
+-	.power_up = ath11k_ahb_power_up,
+-	.irq_enable = ath11k_pci_ext_irq_enable,
+-	.irq_disable = ath11k_pci_ext_irq_disable,
+-	.get_msi_address =  ath11k_pci_get_qgic_msi_address,
+-	.get_user_msi_vector = ath11k_get_user_qgic_msi_assignment,
+-	.map_service_to_pipe = ath11k_pci_map_service_to_pipe,
+-	.get_window_offset = ath11k_pci_get_window_offset,
+-	.get_ce_msi_idx = ath11k_pci_get_ce_msi_idx,
+-	/* TODO: Additional hif ops has been brought in to remove
+-	 * platform checks. QCN6122 is a hybrid bus which is a
+-	 * combination of pic and ahb. This addition ops needs
+-	 * to be removed in future
+-	 */
+-	.config_static_window = ath11k_pci_config_static_window,
+-	.free_irq = ath11k_internal_pci_free_irq,
+-	.config_irq = ath11k_config_irq_internal_pci,
+-	.get_msi_irq = ath11k_pci_get_qgic_msi_irq,
+-};
+-
+ static bool ath11k_skip_target_probe(int userpd_id, const struct of_device_id *of_id)
+ {
+ 	int hw_rev = (enum ath11k_hw_rev)of_id->data;
+@@ -870,8 +845,6 @@ static int ath11k_ahb_probe(struct platf
+ 			ab->ce_remap_base_addr = HAL_IPQ5018_CE_WFSS_REG_BASE;
+ 		}
+ 	} else {
+-		ab->hif.ops = &ath11k_internal_pci_hif_ops;
+-		ab->bus_params = ath11k_internal_pci_bus_params;
+ 	}
+ 
+ 	ret = ath11k_core_pre_init(ab);

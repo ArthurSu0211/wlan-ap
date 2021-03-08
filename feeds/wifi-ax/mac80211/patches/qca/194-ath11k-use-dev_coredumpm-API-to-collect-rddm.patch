@@ -53,7 +53,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  
 --- /dev/null
 +++ b/drivers/net/wireless/ath/ath11k/coredump.c
-@@ -0,0 +1,325 @@
+@@ -0,0 +1,326 @@
 +// SPDX-License-Identifier: BSD-3-Clause-Clear
 +/**
 + * Copyright (c) 2020 The Linux Foundation. All rights reserved.
@@ -180,6 +180,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 +	file_data->tv_sec = cpu_to_le64(timestamp.tv_sec);
 +	file_data->tv_nsec = cpu_to_le64(timestamp.tv_nsec);
 +	file_data->num_seg = num_seg;
++	file_data->seg_size = sizeof(*segments);
 +
 +	/* copy segment details to file */
 +	buf += offsetof(struct ath11k_dump_file_data, seg);
@@ -381,7 +382,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 +}
 --- /dev/null
 +++ b/drivers/net/wireless/ath/ath11k/coredump.h
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,73 @@
 +/* SPDX-License-Identifier: BSD-3-Clause-Clear */
 +/**
 + * Copyright (c) 2020 The Linux Foundation. All rights reserved.
@@ -428,6 +429,8 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 +	u8 unused[8];
 +	/* number of segments */
 +	__le32 num_seg;
++	/* ath11k_dump_segment struct size */
++	__le32 seg_size;
 +
 +	struct ath11k_dump_segment *seg;
 +	/* struct ath11k_dump_segment + more */

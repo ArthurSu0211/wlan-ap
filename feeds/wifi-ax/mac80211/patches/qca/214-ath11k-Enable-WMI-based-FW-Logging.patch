@@ -24,7 +24,24 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -77,6 +77,7 @@ static const struct ath11k_hw_params ath
+@@ -19,6 +19,7 @@ unsigned int ath11k_debug_mask;
+ unsigned int cryptmode;
+ EXPORT_SYMBOL(ath11k_debug_mask);
+ unsigned int nss_offload;
++unsigned int ce_fwlog = 1;
+ 
+ module_param_named(debug_mask, ath11k_debug_mask, uint, 0644);
+ module_param_named(cryptmode, cryptmode, uint, 0644);
+@@ -28,6 +29,8 @@ MODULE_PARM_DESC(cryptmode, "crypto mode
+ module_param_named(nss_offload, nss_offload, uint, 0644);
+ MODULE_PARM_DESC(nss_offload, "Enable NSS Offload support");
+ #endif
++module_param_named(ce_fwlog, ce_fwlog, uint, 0644);
++MODULE_PARM_DESC(ce_fwlog, "Enable/Disable CE based FW logging");
+ 
+ struct ath11k_base *ath11k_soc;
+ 
+@@ -77,6 +80,7 @@ static const struct ath11k_hw_params ath
  		.spectral_max_fft_bins = 512,
  		.spectral_fft_hdr_len = 16,
  		.reo_dest_ring_map_shift = HAL_REO_DEST_RING_CTRL_HASH_RING_SHIFT,
@@ -32,7 +49,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	},
  	{
  		.hw_rev = ATH11K_HW_IPQ6018,
-@@ -115,6 +116,7 @@ static const struct ath11k_hw_params ath
+@@ -115,6 +119,7 @@ static const struct ath11k_hw_params ath
  		.spectral_max_fft_bins = 512,
  		.spectral_fft_hdr_len = 16,
  		.reo_dest_ring_map_shift = HAL_REO_DEST_RING_CTRL_HASH_RING_SHIFT,
@@ -40,7 +57,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	},
  	{
  		.name = "qca6390 hw2.0",
-@@ -147,6 +149,7 @@ static const struct ath11k_hw_params ath
+@@ -147,6 +152,7 @@ static const struct ath11k_hw_params ath
  		.tcl_0_only = true,
  		.spectral_fft_sz = 2,
  		.reo_dest_ring_map_shift = HAL_REO_DEST_RING_CTRL_HASH_RING_SHIFT,
@@ -48,7 +65,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	},
  	{
  		.name = "qcn9000 hw1.0",
-@@ -184,6 +187,7 @@ static const struct ath11k_hw_params ath
+@@ -184,6 +190,7 @@ static const struct ath11k_hw_params ath
  		.spectral_summary_pad_sz = 16,
  		.spectral_fft_hdr_len = 24,
  		.reo_dest_ring_map_shift = HAL_REO_DEST_RING_CTRL_HASH_RING_SHIFT,
@@ -56,7 +73,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	},
  	{
  		.hw_rev = ATH11K_HW_IPQ5018,
-@@ -222,6 +226,7 @@ static const struct ath11k_hw_params ath
+@@ -222,6 +229,7 @@ static const struct ath11k_hw_params ath
  		.spectral_summary_pad_sz = 16,
  		.spectral_fft_hdr_len = 24,
  		.reo_dest_ring_map_shift = HAL_IPQ5018_REO_DEST_RING_CTRL_HASH_RING_SHIFT,
@@ -64,11 +81,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	},
  };
  
-@@ -836,6 +841,14 @@ int ath11k_core_qmi_firmware_ready(struc
+@@ -836,6 +844,14 @@ int ath11k_core_qmi_firmware_ready(struc
  
  	ath11k_config_qdss(ab);
  
-+	if (ab->hw_params.ce_fwlog_enable) {
++	if (ab->hw_params.ce_fwlog_enable && ce_fwlog) {
 +		ret = ath11k_enable_fwlog(ab);
 +		if (ret < 0) {
 +			ath11k_err(ab, "failed to enable fwlog: %d\n", ret);
@@ -81,7 +98,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	return 0;
 --- a/drivers/net/wireless/ath/ath11k/hw.h
 +++ b/drivers/net/wireless/ath/ath11k/hw.h
-@@ -181,6 +181,7 @@ struct ath11k_hw_params {
+@@ -189,6 +189,7 @@ struct ath11k_hw_params {
  	u32 hal_desc_sz;
  	u32 m3_addr;
  	u8 reo_dest_ring_map_shift;
@@ -142,7 +159,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  int wlfw_send_qdss_trace_config_download_req(struct ath11k_base *ab,
  					     const u8 *buffer, unsigned int file_len)
  {
-@@ -3762,6 +3806,55 @@ static void ath11k_qmi_driver_event_work
+@@ -3769,6 +3813,55 @@ static void ath11k_qmi_driver_event_work
  	spin_unlock(&qmi->event_lock);
  }
  
@@ -245,7 +262,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	struct ath11k_pdev *pdev;
 +
 +	for (i = 0; i < ab->num_radios; i++) {
-+		pdev = rcu_dereference(ab->pdevs_active[i]);
++		pdev = &ab->pdevs[i];
 +		if (pdev && pdev->ar) {
 +			ar = pdev->ar;
 +			break;
@@ -319,7 +336,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	__ATH11K_TM_ATTR_AFTER_LAST,
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
-@@ -8138,6 +8138,29 @@ static void ath11k_wmi_wds_peer_event(st
+@@ -8190,6 +8190,29 @@ static void ath11k_wmi_wds_peer_event(st
  		   wds_addr_arg.dst_macaddr);
  }
  
@@ -349,7 +366,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  static void ath11k_wmi_tlv_op_rx(struct ath11k_base *ab, struct sk_buff *skb)
  {
  	struct wmi_cmd_hdr *cmd_hdr;
-@@ -8263,6 +8286,9 @@ static void ath11k_wmi_tlv_op_rx(struct
+@@ -8315,6 +8338,9 @@ static void ath11k_wmi_tlv_op_rx(struct
  	case WMI_MUEDCA_PARAMS_CONFIG_EVENTID:
  		ath11k_wmi_pdev_update_muedca_params_status_event(ab, skb);
  		break;

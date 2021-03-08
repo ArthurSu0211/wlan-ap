@@ -1,5 +1,6 @@
+From f9df2611ffdd0b236dc136e7a8534929b1c8bed2 Mon Sep 17 00:00:00 2001
 From: John Crispin <john@phrozen.org>
-Date: Wed, 26 Aug 2020 07:56:49 +0200
+Date: Tue, 3 Nov 2020 20:27:54 -0800
 Subject: [PATCH] mac80211: add support for BSS coloring
 
 The color change (color change announcement) is very similar to how CSA works where
@@ -12,13 +13,15 @@ for other counter IEs gets added.
 
 Signed-off-by: John Crispin <john@phrozen.org>
 ---
- include/net/mac80211.h     |  29 ++++++
- net/mac80211/cfg.c         | 228 +++++++++++++++++++++++++++++++++++++++++++--
- net/mac80211/ieee80211_i.h |  12 +++
+ include/net/mac80211.h     |  29 +++++
+ net/mac80211/cfg.c         | 228 +++++++++++++++++++++++++++++++++++--
+ net/mac80211/ieee80211_i.h |  12 ++
  net/mac80211/iface.c       |   3 +
- net/mac80211/tx.c          |  24 +++--
+ net/mac80211/tx.c          |  24 ++--
  5 files changed, 278 insertions(+), 18 deletions(-)
 
+diff --git a/include/net/mac80211.h b/include/net/mac80211.h
+index bf39030b4993..92c17055fc81 100644
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
 @@ -1690,6 +1690,10 @@ enum ieee80211_vif_flags {
@@ -42,10 +45,11 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	/* must be last */
  	u8 drv_priv[] __aligned(sizeof(void *));
  };
-@@ -4985,6 +4992,16 @@ void ieee80211_csa_finish(struct ieee802
+@@ -4984,6 +4991,16 @@ void ieee80211_csa_finish(struct ieee80211_vif *vif);
+  */
  bool ieee80211_beacon_cntdwn_is_complete(struct ieee80211_vif *vif);
  
- /**
++/**
 + * ieee80211_color_change_finish - notify mac80211 about color change
 + * @vif: &struct ieee80211_vif pointer from the add_interface callback.
 + *
@@ -55,10 +59,9 @@ Signed-off-by: John Crispin <john@phrozen.org>
 + */
 +void ieee80211_color_change_finish(struct ieee80211_vif *vif);
 +
-+/**
+ /**
   * ieee80211_proberesp_get - retrieve a Probe Response template
   * @hw: pointer obtained from ieee80211_alloc_hw().
-  * @vif: &struct ieee80211_vif pointer from the add_interface callback.
 @@ -6726,4 +6743,16 @@ struct sk_buff *
  ieee80211_get_unsol_bcast_probe_resp_tmpl(struct ieee80211_hw *hw,
  					  struct ieee80211_vif *vif);
@@ -76,9 +79,11 @@ Signed-off-by: John Crispin <john@phrozen.org>
 +				       u64 color_bitmap);
 +
  #endif /* MAC80211_H */
+diff --git a/net/mac80211/cfg.c b/net/mac80211/cfg.c
+index 6c6a9fb7b6ec..363ceeff0f6e 100644
 --- a/net/mac80211/cfg.c
 +++ b/net/mac80211/cfg.c
-@@ -861,7 +861,8 @@ static int ieee80211_set_monitor_channel
+@@ -861,7 +861,8 @@ static int ieee80211_set_monitor_channel(struct wiphy *wiphy,
  
  static int ieee80211_set_probe_resp(struct ieee80211_sub_if_data *sdata,
  				    const u8 *resp, size_t resp_len,
@@ -88,7 +93,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  {
  	struct probe_resp *new, *old;
  
-@@ -881,6 +882,8 @@ static int ieee80211_set_probe_resp(stru
+@@ -881,6 +882,8 @@ static int ieee80211_set_probe_resp(struct ieee80211_sub_if_data *sdata,
  		memcpy(new->cntdwn_counter_offsets, csa->counter_offsets_presp,
  		       csa->n_counter_offsets_presp *
  		       sizeof(new->cntdwn_counter_offsets[0]));
@@ -97,7 +102,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  
  	rcu_assign_pointer(sdata->u.ap.probe_resp, new);
  	if (old)
-@@ -1011,7 +1014,8 @@ static u8 *ieee80211_copy_multiple_bssid
+@@ -1016,7 +1019,8 @@ static u8 *ieee80211_copy_multiple_bssid_beacon(u8 *offset,
  
  static int ieee80211_assign_beacon(struct ieee80211_sub_if_data *sdata,
  				   struct cfg80211_beacon_data *params,
@@ -107,7 +112,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  {
  	struct beacon_data *new, *old;
  	int new_head_len, new_tail_len, new_multiple_bssid_len;
-@@ -1083,6 +1087,11 @@ static int ieee80211_assign_beacon(struc
+@@ -1088,6 +1092,11 @@ static int ieee80211_assign_beacon(struct ieee80211_sub_if_data *sdata,
  		       sizeof(new->cntdwn_counter_offsets[0]));
  	}
  
@@ -119,7 +124,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	/* copy in head */
  	if (params->head)
  		memcpy(new->head, params->head, new_head_len);
-@@ -1097,7 +1106,7 @@ static int ieee80211_assign_beacon(struc
+@@ -1102,7 +1111,7 @@ static int ieee80211_assign_beacon(struct ieee80211_sub_if_data *sdata,
  			memcpy(new->tail, old->tail, new_tail_len);
  
  	err = ieee80211_set_probe_resp(sdata, params->probe_resp,
@@ -128,7 +133,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	if (err < 0) {
  		kfree(new);
  		return err;
-@@ -1256,7 +1265,7 @@ static int ieee80211_start_ap(struct wip
+@@ -1261,7 +1270,7 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
  		}
  	}
  
@@ -137,7 +142,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	if (err < 0) {
  		ieee80211_vif_release_channel(sdata);
  		return err;
-@@ -1311,17 +1320,17 @@ static int ieee80211_change_beacon(struc
+@@ -1299,17 +1308,17 @@ static int ieee80211_change_beacon(struct wiphy *wiphy, struct net_device *dev,
  	sdata = IEEE80211_DEV_TO_SUB_IF(dev);
  	sdata_assert_lock(sdata);
  
@@ -158,7 +163,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	if (err < 0)
  		return err;
  	ieee80211_bss_info_change_notify(sdata, err);
-@@ -3240,7 +3249,7 @@ static int ieee80211_set_after_csa_beaco
+@@ -3228,7 +3237,7 @@ static int ieee80211_set_after_csa_beacon(struct ieee80211_sub_if_data *sdata,
  	switch (sdata->vif.type) {
  	case NL80211_IFTYPE_AP:
  		err = ieee80211_assign_beacon(sdata, sdata->u.ap.next_beacon,
@@ -167,7 +172,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  		kfree(sdata->u.ap.next_beacon);
  		sdata->u.ap.next_beacon = NULL;
  
-@@ -3406,7 +3415,7 @@ static int ieee80211_set_csa_beacon(stru
+@@ -3394,7 +3403,7 @@ static int ieee80211_set_csa_beacon(struct ieee80211_sub_if_data *sdata,
  		csa.n_counter_offsets_presp = params->n_counter_offsets_presp;
  		csa.count = params->count;
  
@@ -176,7 +181,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  		if (err < 0) {
  			kfree(sdata->u.ap.next_beacon);
  			return err;
-@@ -3494,6 +3503,14 @@ static int ieee80211_set_csa_beacon(stru
+@@ -3482,6 +3491,14 @@ static int ieee80211_set_csa_beacon(struct ieee80211_sub_if_data *sdata,
  	return 0;
  }
  
@@ -191,7 +196,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  static int
  __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
  			   struct cfg80211_csa_settings *params)
-@@ -3562,6 +3579,10 @@ __ieee80211_channel_switch(struct wiphy
+@@ -3550,6 +3567,10 @@ __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
  		goto out;
  	}
  
@@ -202,7 +207,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	err = ieee80211_set_csa_beacon(sdata, params, &changed);
  	if (err) {
  		ieee80211_vif_unreserve_chanctx(sdata);
-@@ -4202,6 +4223,194 @@ static int ieee80211_reset_tid_config(st
+@@ -4190,6 +4211,194 @@ static int ieee80211_reset_tid_config(struct wiphy *wiphy,
  	return ret;
  }
  
@@ -397,12 +402,14 @@ Signed-off-by: John Crispin <john@phrozen.org>
  const struct cfg80211_ops mac80211_config_ops = {
  	.add_virtual_intf = ieee80211_add_iface,
  	.del_virtual_intf = ieee80211_del_iface,
-@@ -4305,4 +4514,5 @@ const struct cfg80211_ops mac80211_confi
- 	.probe_mesh_link = ieee80211_probe_mesh_link,
- 	.set_tid_config = ieee80211_set_tid_config,
+@@ -4295,4 +4504,5 @@ const struct cfg80211_ops mac80211_config_ops = {
  	.reset_tid_config = ieee80211_reset_tid_config,
+ 	.set_fils_discovery = ieee80211_set_fils_discovery,
+ 	.set_unsol_bcast_probe_resp = ieee80211_set_unsol_bcast_probe_resp,
 +	.color_change = ieee80211_color_change,
  };
+diff --git a/net/mac80211/ieee80211_i.h b/net/mac80211/ieee80211_i.h
+index 49806681bf77..a0eb3d37bebb 100644
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
 @@ -256,6 +256,13 @@ struct ieee80211_csa_settings {
@@ -428,7 +435,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	struct list_head assigned_chanctx_list; /* protected by chanctx_mtx */
  	struct list_head reserved_chanctx_list; /* protected by chanctx_mtx */
  
-@@ -1761,6 +1770,9 @@ void ieee80211_csa_finalize_work(struct
+@@ -1761,6 +1770,9 @@ void ieee80211_csa_finalize_work(struct work_struct *work);
  int ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
  			     struct cfg80211_csa_settings *params);
  
@@ -438,9 +445,11 @@ Signed-off-by: John Crispin <john@phrozen.org>
  /* interface handling */
  #define MAC80211_SUPPORTED_FEATURES_TX	(NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM | \
  					 NETIF_F_HW_CSUM | NETIF_F_SG | \
+diff --git a/net/mac80211/iface.c b/net/mac80211/iface.c
+index cb40787f7f86..7199972c7cd3 100644
 --- a/net/mac80211/iface.c
 +++ b/net/mac80211/iface.c
-@@ -960,6 +960,8 @@ static void ieee80211_do_stop(struct iee
+@@ -960,6 +960,8 @@ static void ieee80211_do_stop(struct ieee80211_sub_if_data *sdata,
  				   GFP_KERNEL);
  	}
  
@@ -449,7 +458,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	/* APs need special treatment */
  	if (sdata->vif.type == NL80211_IFTYPE_AP) {
  		struct ieee80211_sub_if_data *vlan, *tmpsdata;
-@@ -1618,6 +1620,7 @@ static void ieee80211_setup_sdata(struct
+@@ -1618,6 +1620,7 @@ static void ieee80211_setup_sdata(struct ieee80211_sub_if_data *sdata,
  	INIT_WORK(&sdata->work, ieee80211_iface_work);
  	INIT_WORK(&sdata->recalc_smps, ieee80211_recalc_smps_work);
  	INIT_WORK(&sdata->csa_finalize_work, ieee80211_csa_finalize_work);
@@ -457,9 +466,11 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	INIT_LIST_HEAD(&sdata->assigned_chanctx_list);
  	INIT_LIST_HEAD(&sdata->reserved_chanctx_list);
  
+diff --git a/net/mac80211/tx.c b/net/mac80211/tx.c
+index 3b65e3a94c3a..cf5082c04eca 100644
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -4597,11 +4597,12 @@ static int ieee80211_beacon_add_tim(stru
+@@ -4597,11 +4597,12 @@ static int ieee80211_beacon_add_tim(struct ieee80211_sub_if_data *sdata,
  static void ieee80211_set_beacon_cntdwn(struct ieee80211_sub_if_data *sdata,
  					struct beacon_data *beacon)
  {
@@ -473,7 +484,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  
  	switch (sdata->vif.type) {
  	case NL80211_IFTYPE_AP:
-@@ -4621,21 +4622,25 @@ static void ieee80211_set_beacon_cntdwn(
+@@ -4621,21 +4622,25 @@ static void ieee80211_set_beacon_cntdwn(struct ieee80211_sub_if_data *sdata,
  	}
  
  	rcu_read_lock();
@@ -507,7 +518,7 @@ Signed-off-by: John Crispin <john@phrozen.org>
  	}
  	rcu_read_unlock();
  }
-@@ -4864,6 +4869,7 @@ __ieee80211_beacon_get(struct ieee80211_
+@@ -4864,6 +4869,7 @@ __ieee80211_beacon_get(struct ieee80211_hw *hw,
  			if (offs) {
  				offs->tim_offset = beacon->head_len;
  				offs->tim_length = skb->len - beacon->head_len;
@@ -515,3 +526,6 @@ Signed-off-by: John Crispin <john@phrozen.org>
  
  				/* for AP the csa offsets are from tail */
  				csa_off_base = skb->len;
+-- 
+2.25.0
+

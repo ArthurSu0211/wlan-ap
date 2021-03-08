@@ -1,10 +1,9 @@
 --- a/interface.c
 +++ b/interface.c
-@@ -802,3 +802,68 @@ nla_put_failure:
- COMMAND(set, tid_retry_count, "tid <tid> <[peer <MAC address>] short <limit> long <limit>]>",
+@@ -803,6 +803,71 @@ COMMAND(set, tid_retry_count, "tid <tid>
  		NL80211_CMD_SET_TID_CONFIG, 0, CIB_NETDEV, handle_retry_count,
  		"Set the retry count for the TIDs ");
-+
+ 
 +static int handle_aggr_conf(struct nl80211_state *state,
 +			    struct nl_msg *msg,
 +			    int argc, char **argv,
@@ -69,9 +68,13 @@
 +COMMAND(set, tid_aggr_conf, "tid <tid> <[peer <MAC address>] aggr on|off>",
 +	NL80211_CMD_SET_TID_CONFIG, 0, CIB_NETDEV, handle_aggr_conf,
 +	"Enable/disable aggregation for the TIDs ");
++
+ 
+ static int toggle_tid_param(const char *argv0, const char *argv1,
+ 			    struct nl_msg *msg, uint32_t attr)
 --- a/nl80211.h
 +++ b/nl80211.h
-@@ -4635,17 +4635,32 @@ enum nl80211_ps_state {
+@@ -4915,17 +4915,32 @@ enum nl80211_ps_state {
   *	the max value should be advertised by the driver through
   *	max_data_retry_count. when this attribute is not present, the driver
   *	would use the default configuration.

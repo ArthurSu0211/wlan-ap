@@ -72,7 +72,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  	he_obss_pd->enable = true;
  
  	return 0;
-@@ -5239,7 +5264,8 @@ static int nl80211_start_ap(struct sk_bu
+@@ -5265,7 +5290,8 @@ static int nl80211_start_ap(struct sk_bu
  		err = nl80211_parse_he_obss_pd(
  					info->attrs[NL80211_ATTR_HE_OBSS_PD],
  					&params.he_obss_pd);
@@ -126,7 +126,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  /**
 --- a/include/uapi/linux/nl80211.h
 +++ b/include/uapi/linux/nl80211.h
-@@ -6992,6 +6992,13 @@ enum nl80211_peer_measurement_ftm_resp {
+@@ -7020,6 +7020,13 @@ enum nl80211_peer_measurement_ftm_resp {
   *
   * @NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET: the OBSS PD minimum tx power offset.
   * @NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET: the OBSS PD maximum tx power offset.
@@ -140,7 +140,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
   *
   * @__NL80211_HE_OBSS_PD_ATTR_LAST: Internal
   * @NL80211_HE_OBSS_PD_ATTR_MAX: highest OBSS PD attribute.
-@@ -7001,6 +7008,10 @@ enum nl80211_obss_pd_attributes {
+@@ -7029,6 +7036,10 @@ enum nl80211_obss_pd_attributes {
  
  	NL80211_HE_OBSS_PD_ATTR_MIN_OFFSET,
  	NL80211_HE_OBSS_PD_ATTR_MAX_OFFSET,
@@ -153,7 +153,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  	__NL80211_HE_OBSS_PD_ATTR_LAST,
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -2768,6 +2768,137 @@ static void ath11k_mac_op_nss_bss_info_c
+@@ -2773,6 +2773,137 @@ static void ath11k_mac_op_nss_bss_info_c
  	mutex_unlock(&ar->conf_mutex);
  }
  
@@ -162,7 +162,8 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
 +{
 +	u32 bitmap[2], param_id, param_val, pdev_id;
 +	int ret;
-+	s8 non_srg_th = 0, srg_th = 0;
++	s8 non_srg_th = ATH11K_OBSS_PD_THRESHOLD_DISABLED;
++	s8 srg_th = 0;
 +
 +	pdev_id = ar->pdev->pdev_id;
 +
@@ -191,8 +192,6 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
 +		    IEEE80211_HE_SPR_NON_SRG_OFFSET_PRESENT)
 +			non_srg_th = (ATH11K_OBSS_PD_MAX_THRESHOLD +
 +				      he_obss_pd->non_srg_max_offset);
-+		else
-+			non_srg_th = ATH11K_OBSS_PD_NON_SRG_MAX_THRESHOLD;
 +		param_val |= ATH11K_OBSS_PD_NON_SRG_EN;
 +	}
 +
@@ -206,7 +205,8 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
 +		param_val |= ATH11K_OBSS_PD_THRESHOLD_IN_DBM;
 +		param_val |= ((u16)(srg_th << 7) & 0xff00);
 +	} else {
-+		non_srg_th -= ATH11K_DEFAULT_NOISE_FLOOR;
++		if ((non_srg_th & 0xff) != ATH11K_OBSS_PD_THRESHOLD_DISABLED)
++			non_srg_th -= ATH11K_DEFAULT_NOISE_FLOOR;
 +		/* SRG not supported and threshold in dB */
 +		param_val &= ~(ATH11K_OBSS_PD_SRG_EN |
 +			       ATH11K_OBSS_PD_THRESHOLD_IN_DBM);
@@ -291,7 +291,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  static void ath11k_mac_op_bss_info_changed(struct ieee80211_hw *hw,
  					   struct ieee80211_vif *vif,
  					   struct ieee80211_bss_conf *info,
-@@ -3006,8 +3137,7 @@ static void ath11k_mac_op_bss_info_chang
+@@ -3011,8 +3142,7 @@ static void ath11k_mac_op_bss_info_chang
  	}
  
  	if (changed & BSS_CHANGED_HE_OBSS_PD)
@@ -308,7 +308,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  #define IEEE80211_HE_DL_MU_SUPPORT_INVALID       3
  
 +#define ATH11K_OBSS_PD_MAX_THRESHOLD			-82
-+#define ATH11K_OBSS_PD_NON_SRG_MAX_THRESHOLD		-62
++#define ATH11K_OBSS_PD_THRESHOLD_DISABLED		128
 +#define ATH11K_OBSS_PD_THRESHOLD_IN_DBM			BIT(29)
 +#define ATH11K_OBSS_PD_SRG_EN				BIT(30)
 +#define ATH11K_OBSS_PD_NON_SRG_EN			BIT(31)
@@ -318,7 +318,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  int ath11k_mac_ap_ps_recalc(struct ath11k *ar);
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
-@@ -3476,6 +3476,233 @@ ath11k_wmi_send_obss_spr_cmd(struct ath1
+@@ -3485,6 +3485,233 @@ ath11k_wmi_send_obss_spr_cmd(struct ath1
  }
  
  int
@@ -578,7 +578,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  	WMI_TAG_TPC_STATS_GET_CMD = 0x38B,
  	WMI_TAG_TPC_STATS_EVENT_FIXED_PARAM,
  	WMI_TAG_TPC_STATS_CONFIG_EVENT,
-@@ -5221,6 +5231,12 @@ struct wmi_obss_spatial_reuse_params_cmd
+@@ -5233,6 +5243,12 @@ struct wmi_obss_spatial_reuse_params_cmd
  	u32 vdev_id;
  } __packed;
  
@@ -591,7 +591,7 @@ Signed-off-by: Rajkumar Manoharan <rmanohar@codeaurora.org>
  #define ATH11K_BSS_COLOR_COLLISION_SCAN_PERIOD_MS		200
  #define ATH11K_OBSS_COLOR_COLLISION_DETECTION_DISABLE		0
  #define ATH11K_OBSS_COLOR_COLLISION_DETECTION			1
-@@ -5782,6 +5798,16 @@ int ath11k_wmi_send_twt_resume_dialog_cm
+@@ -5794,6 +5810,16 @@ int ath11k_wmi_send_twt_resume_dialog_cm
  		struct wmi_twt_resume_dialog_params *params);
  int ath11k_wmi_send_obss_spr_cmd(struct ath11k *ar, u32 vdev_id,
  				 struct ieee80211_he_obss_pd *he_obss_pd);

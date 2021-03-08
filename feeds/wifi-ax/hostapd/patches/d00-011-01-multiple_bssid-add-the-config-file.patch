@@ -1,4 +1,4 @@
-From be8312cd122fbe35e45173d23e936fa1b76e56e8 Mon Sep 17 00:00:00 2001
+From 353f9b94d5f8a9a307ae80d62cd5fb503f126563 Mon Sep 17 00:00:00 2001
 From: John Crispin <john@phrozen.org>
 Date: Wed, 3 Jun 2020 16:32:11 +0200
 Subject: [PATCH 1/7] multiple_bssid: add the config file
@@ -11,11 +11,11 @@ Signed-off-by: John Crispin <john@phrozen.org>
  src/ap/ap_config.h    | 2 ++
  2 files changed, 4 insertions(+)
 
-Index: hostapd-2020-07-02-58b384f4/hostapd/config_file.c
+Index: hostapd-2020-10-14-0f07230e/hostapd/config_file.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/hostapd/config_file.c
-+++ hostapd-2020-07-02-58b384f4/hostapd/config_file.c
-@@ -4587,6 +4587,8 @@ static int hostapd_config_fill(struct ho
+--- hostapd-2020-10-14-0f07230e.orig/hostapd/config_file.c
++++ hostapd-2020-10-14-0f07230e/hostapd/config_file.c
+@@ -4618,6 +4618,8 @@ static int hostapd_config_fill(struct ho
  		}
  		bss->mka_psk_set |= MKA_PSK_SET_CKN;
  #endif /* CONFIG_MACSEC */
@@ -24,11 +24,11 @@ Index: hostapd-2020-07-02-58b384f4/hostapd/config_file.c
  	} else {
  		wpa_printf(MSG_ERROR,
  			   "Line %d: unknown configuration item '%s'",
-Index: hostapd-2020-07-02-58b384f4/src/ap/ap_config.h
+Index: hostapd-2020-10-14-0f07230e/src/ap/ap_config.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ap_config.h
-+++ hostapd-2020-07-02-58b384f4/src/ap/ap_config.h
-@@ -1001,6 +1001,8 @@ struct hostapd_config {
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ap_config.h
++++ hostapd-2020-10-14-0f07230e/src/ap/ap_config.h
+@@ -1006,6 +1006,8 @@ struct hostapd_config {
  	u8 vht_oper_centr_freq_seg1_idx;
  	u8 ht40_plus_minus_allowed;
  
@@ -37,10 +37,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ap_config.h
  	/* Use driver-generated interface addresses when adding multiple BSSs */
  	u8 use_driver_iface_addr;
  
-Index: hostapd-2020-07-02-58b384f4/src/ap/hostapd.c
+Index: hostapd-2020-10-14-0f07230e/src/ap/hostapd.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/hostapd.c
-+++ hostapd-2020-07-02-58b384f4/src/ap/hostapd.c
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/hostapd.c
++++ hostapd-2020-10-14-0f07230e/src/ap/hostapd.c
 @@ -87,6 +87,26 @@ int hostapd_for_each_interface(struct ha
  }
  
@@ -91,10 +91,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/hostapd.c
  			wpa_printf(MSG_ERROR, "Failed to add BSS (BSSID="
  				   MACSTR ")", MAC2STR(hapd->own_addr));
  			hapd->interface_added = 0;
-Index: hostapd-2020-07-02-58b384f4/src/ap/hostapd.h
+Index: hostapd-2020-10-14-0f07230e/src/ap/hostapd.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/hostapd.h
-+++ hostapd-2020-07-02-58b384f4/src/ap/hostapd.h
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/hostapd.h
++++ hostapd-2020-10-14-0f07230e/src/ap/hostapd.h
 @@ -598,6 +598,8 @@ struct hostapd_iface {
  int hostapd_for_each_interface(struct hapd_interfaces *interfaces,
  			       int (*cb)(struct hostapd_iface *iface,
@@ -104,10 +104,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/hostapd.h
  int hostapd_reload_config(struct hostapd_iface *iface, int reconf);
  void hostapd_reconfig_encryption(struct hostapd_data *hapd);
  struct hostapd_data *
-Index: hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.c
+Index: hostapd-2020-10-14-0f07230e/src/ap/ap_drv_ops.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ap_drv_ops.c
-+++ hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.c
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ap_drv_ops.c
++++ hostapd-2020-10-14-0f07230e/src/ap/ap_drv_ops.c
 @@ -321,7 +321,7 @@ int hostapd_vlan_if_add(struct hostapd_d
  	char force_ifname[IFNAMSIZ];
  	u8 if_addr[ETH_ALEN];
@@ -135,10 +135,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.c
  }
  
  
-Index: hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.h
+Index: hostapd-2020-10-14-0f07230e/src/ap/ap_drv_ops.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ap_drv_ops.h
-+++ hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.h
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ap_drv_ops.h
++++ hostapd-2020-10-14-0f07230e/src/ap/ap_drv_ops.h
 @@ -54,7 +54,8 @@ int hostapd_set_ssid(struct hostapd_data
  int hostapd_if_add(struct hostapd_data *hapd, enum wpa_driver_if_type type,
  		   const char *ifname, const u8 *addr, void *bss_ctx,
@@ -149,10 +149,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ap_drv_ops.h
  int hostapd_if_remove(struct hostapd_data *hapd, enum wpa_driver_if_type type,
  		      const char *ifname);
  int hostapd_set_ieee8021x(struct hostapd_data *hapd,
-Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
+Index: hostapd-2020-10-14-0f07230e/src/ap/beacon.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/beacon.c
-+++ hostapd-2020-07-02-58b384f4/src/ap/beacon.c
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/beacon.c
++++ hostapd-2020-10-14-0f07230e/src/ap/beacon.c
 @@ -293,7 +293,7 @@ static const u8 * hostapd_vendor_wpa_ie(
  }
  
@@ -191,9 +191,9 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
  	/* eCSA IE */
  	csa_pos = hostapd_eid_ecsa(hapd, pos);
  	if (csa_pos != pos)
-@@ -826,6 +834,10 @@ void handle_probe_req(struct hostapd_dat
- 		.elems = &elems,
- 	};
+@@ -830,6 +838,10 @@ void handle_probe_req(struct hostapd_dat
+ 	    ssi_signal < hapd->iconf->rssi_ignore_probe_request)
+ 		return;
  
 +        if (hapd->iconf->multiple_bssid &&
 +	    hapd != hostapd_get_primary_bss(hapd))
@@ -202,7 +202,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
  	if (len < IEEE80211_HDRLEN)
  		return;
  	ie = ((const u8 *) mgmt) + IEEE80211_HDRLEN;
-@@ -1075,7 +1087,7 @@ void handle_probe_req(struct hostapd_dat
+@@ -1080,7 +1092,7 @@ void handle_probe_req(struct hostapd_dat
  				hapd->cs_c_off_ecsa_proberesp;
  	}
  
@@ -211,7 +211,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
  				    csa_offs_len ? csa_offs : NULL,
  				    csa_offs_len, 0);
  
-@@ -1755,6 +1767,8 @@ void ieee802_11_free_ap_params(struct wp
+@@ -1762,6 +1774,8 @@ void ieee802_11_free_ap_params(struct wp
  	params->head = NULL;
  	os_free(params->proberesp);
  	params->proberesp = NULL;
@@ -220,7 +220,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
  #ifdef CONFIG_FILS
  	os_free(params->fils_discovery_tmpl);
  	params->fils_discovery_tmpl = NULL;
-@@ -1805,6 +1819,22 @@ int ieee802_11_set_beacon(struct hostapd
+@@ -1812,6 +1826,22 @@ int ieee802_11_set_beacon(struct hostapd
  	params.unsol_bcast_probe_resp_tmpl =
  				hostapd_unsol_bcast_probe_resp(hapd, &params);
  #endif /* CONFIG_IEEE80211AX */
@@ -243,11 +243,11 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/beacon.c
  	hapd->reenable_beacon = 0;
  
  #ifdef CONFIG_FILS
-Index: hostapd-2020-07-02-58b384f4/src/drivers/driver.h
+Index: hostapd-2020-10-14-0f07230e/src/drivers/driver.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/drivers/driver.h
-+++ hostapd-2020-07-02-58b384f4/src/drivers/driver.h
-@@ -1222,6 +1222,8 @@ struct wowlan_triggers {
+--- hostapd-2020-10-14-0f07230e.orig/src/drivers/driver.h
++++ hostapd-2020-10-14-0f07230e/src/drivers/driver.h
+@@ -1216,6 +1216,8 @@ struct wowlan_triggers {
  	u8 rfkill_release;
  };
  
@@ -256,7 +256,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver.h
  struct wpa_driver_ap_params {
  	/**
  	 * head - Beacon head from IEEE 802.11 header to IEs before TIM IE
-@@ -1553,6 +1555,41 @@ struct wpa_driver_ap_params {
+@@ -1547,6 +1549,41 @@ struct wpa_driver_ap_params {
  	 * Unsolicited broadcast probe response template length
  	 */
  	size_t unsol_bcast_probe_resp_tmpl_len;
@@ -298,7 +298,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver.h
  };
  
  struct wpa_driver_mesh_bss_params {
-@@ -3294,7 +3331,8 @@ struct wpa_driver_ops {
+@@ -3288,7 +3325,8 @@ struct wpa_driver_ops {
  	int (*if_add)(void *priv, enum wpa_driver_if_type type,
  		      const char *ifname, const u8 *addr, void *bss_ctx,
  		      void **drv_priv, char *force_ifname, u8 *if_addr,
@@ -308,10 +308,10 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver.h
  
  	/**
  	 * if_remove - Remove a virtual interface
-Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/driver_i.h
+Index: hostapd-2020-10-14-0f07230e/wpa_supplicant/driver_i.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/wpa_supplicant/driver_i.h
-+++ hostapd-2020-07-02-58b384f4/wpa_supplicant/driver_i.h
+--- hostapd-2020-10-14-0f07230e.orig/wpa_supplicant/driver_i.h
++++ hostapd-2020-10-14-0f07230e/wpa_supplicant/driver_i.h
 @@ -444,7 +444,7 @@ static inline int wpa_drv_if_add(struct
  	if (wpa_s->driver->if_add)
  		return wpa_s->driver->if_add(wpa_s->drv_priv, type, ifname,
@@ -321,13 +321,13 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/driver_i.h
  	return -1;
  }
  
-Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
+Index: hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/drivers/driver_nl80211.c
-+++ hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
-@@ -4640,6 +4640,27 @@ static int wpa_driver_nl80211_set_ap(voi
- 		goto fail;
- #endif /* CONFIG_FILS */
+--- hostapd-2020-10-14-0f07230e.orig/src/drivers/driver_nl80211.c
++++ hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211.c
+@@ -4670,6 +4670,27 @@ static int wpa_driver_nl80211_set_ap(voi
+ 
+ #endif /* CONFIG_IEEE80211AX */
  
 +	if (params->multiple_bssid_count) {
 +		nla_put_u8(msg, NL80211_ATTR_MULTIPLE_BSSID_INDEX,
@@ -353,7 +353,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  	ret = send_and_recv_msgs_owner(drv, msg, get_connect_handle(bss), 1,
  				       NULL, NULL, NULL, NULL);
  	if (ret) {
-@@ -5232,13 +5253,13 @@ const char * nl80211_iftype_str(enum nl8
+@@ -5269,13 +5290,13 @@ const char * nl80211_iftype_str(enum nl8
  	}
  }
  
@@ -369,7 +369,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  {
  	struct nl_msg *msg;
  	int ifidx;
-@@ -5267,6 +5288,17 @@ static int nl80211_create_iface_once(str
+@@ -5304,6 +5325,17 @@ static int nl80211_create_iface_once(str
  			goto fail;
  	}
  
@@ -387,7 +387,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  	/*
  	 * Tell cfg80211 that the interface belongs to the socket that created
  	 * it, and the interface should be deleted when the socket is closed.
-@@ -5320,12 +5352,15 @@ int nl80211_create_iface(struct wpa_driv
+@@ -5357,12 +5389,15 @@ int nl80211_create_iface(struct wpa_driv
  			 const char *ifname, enum nl80211_iftype iftype,
  			 const u8 *addr, int wds,
  			 int (*handler)(struct nl_msg *, void *),
@@ -405,7 +405,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  
  	/* if error occurred and interface exists already */
  	if (ret == -ENFILE && if_nametoindex(ifname)) {
-@@ -5351,7 +5386,9 @@ int nl80211_create_iface(struct wpa_driv
+@@ -5388,7 +5423,9 @@ int nl80211_create_iface(struct wpa_driv
  
  		/* Try to create the interface again */
  		ret = nl80211_create_iface_once(drv, ifname, iftype, addr,
@@ -416,7 +416,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  	}
  
  	if (ret >= 0 && is_p2p_net_interface(iftype)) {
-@@ -7331,7 +7368,7 @@ static int i802_set_wds_sta(void *priv,
+@@ -7368,7 +7405,7 @@ static int i802_set_wds_sta(void *priv,
  		if (!if_nametoindex(name)) {
  			if (nl80211_create_iface(drv, name,
  						 NL80211_IFTYPE_AP_VLAN,
@@ -425,7 +425,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  			    0)
  				return -1;
  			if (bridge_ifname &&
-@@ -7678,7 +7715,9 @@ static int wpa_driver_nl80211_if_add(voi
+@@ -7715,7 +7752,9 @@ static int wpa_driver_nl80211_if_add(voi
  				     void *bss_ctx, void **drv_priv,
  				     char *force_ifname, u8 *if_addr,
  				     const char *bridge, int use_existing,
@@ -436,7 +436,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  {
  	enum nl80211_iftype nlmode;
  	struct i802_bss *bss = priv;
-@@ -7695,7 +7734,8 @@ static int wpa_driver_nl80211_if_add(voi
+@@ -7732,7 +7771,8 @@ static int wpa_driver_nl80211_if_add(voi
  		os_memset(&p2pdev_info, 0, sizeof(p2pdev_info));
  		ifidx = nl80211_create_iface(drv, ifname, nlmode, addr,
  					     0, nl80211_wdev_handler,
@@ -446,7 +446,7 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  		if (!p2pdev_info.wdev_id_set || ifidx != 0) {
  			wpa_printf(MSG_ERROR, "nl80211: Failed to create a P2P Device interface %s",
  				   ifname);
-@@ -7711,7 +7751,9 @@ static int wpa_driver_nl80211_if_add(voi
+@@ -7748,7 +7788,9 @@ static int wpa_driver_nl80211_if_add(voi
  			   (long long unsigned int) p2pdev_info.wdev_id);
  	} else {
  		ifidx = nl80211_create_iface(drv, ifname, nlmode, addr,
@@ -457,10 +457,10 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.c
  		if (use_existing && ifidx == -ENFILE) {
  			added = 0;
  			ifidx = if_nametoindex(ifname);
-Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.h
+Index: hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/drivers/driver_nl80211.h
-+++ hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.h
+--- hostapd-2020-10-14-0f07230e.orig/src/drivers/driver_nl80211.h
++++ hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211.h
 @@ -240,7 +240,9 @@ int nl80211_create_iface(struct wpa_driv
  			 const char *ifname, enum nl80211_iftype iftype,
  			 const u8 *addr, int wds,
@@ -472,10 +472,10 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211.h
  void nl80211_remove_iface(struct wpa_driver_nl80211_data *drv, int ifidx);
  unsigned int nl80211_get_assoc_freq(struct wpa_driver_nl80211_data *drv);
  int nl80211_get_assoc_ssid(struct wpa_driver_nl80211_data *drv, u8 *ssid);
-Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211_monitor.c
+Index: hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211_monitor.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/drivers/driver_nl80211_monitor.c
-+++ hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211_monitor.c
+--- hostapd-2020-10-14-0f07230e.orig/src/drivers/driver_nl80211_monitor.c
++++ hostapd-2020-10-14-0f07230e/src/drivers/driver_nl80211_monitor.c
 @@ -381,7 +381,7 @@ int nl80211_create_monitor_interface(str
  
  	drv->monitor_ifidx =
@@ -485,13 +485,13 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/driver_nl80211_monitor.c
  
  	if (drv->monitor_ifidx == -EOPNOTSUPP) {
  		/*
-Index: hostapd-2020-07-02-58b384f4/src/drivers/nl80211_copy.h
+Index: hostapd-2020-10-14-0f07230e/src/drivers/nl80211_copy.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/drivers/nl80211_copy.h
-+++ hostapd-2020-07-02-58b384f4/src/drivers/nl80211_copy.h
-@@ -2522,6 +2522,20 @@ enum nl80211_commands {
-  *	unsolicited broadcast probe response. It is a nested attribute, see
-  *	&enum nl80211_unsol_bcast_probe_resp_attributes.
+--- hostapd-2020-10-14-0f07230e.orig/src/drivers/nl80211_copy.h
++++ hostapd-2020-10-14-0f07230e/src/drivers/nl80211_copy.h
+@@ -2538,6 +2538,20 @@ enum nl80211_commands {
+  * @NL80211_ATTR_HE_MUEDCA_PARAMS: MU-EDCA AC parameters for the
+  *	NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS command.
   *
 + * @NL80211_ATTR_MULTIPLE_BSSID_NON_TRANSMITTING: Set the Non-Transmitted flag for this
 + *	BSSIDs beacon.
@@ -510,10 +510,13 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/nl80211_copy.h
   * @NUM_NL80211_ATTR: total number of nl80211_attrs available
   * @NL80211_ATTR_MAX: highest attribute number currently defined
   * @__NL80211_ATTR_AFTER_LAST: internal use
-@@ -3010,6 +3024,12 @@ enum nl80211_attrs {
+@@ -3029,6 +3043,15 @@ enum nl80211_attrs {
  
- 	NL80211_ATTR_UNSOL_BCAST_PROBE_RESP,
+ 	NL80211_ATTR_HE_MUEDCA_PARAMS,
  
++	NL80211_ATTR_S1G_CAPABILITY,
++	NL80211_ATTR_S1G_CAPABILITY_MASK,
++
 +	NL80211_ATTR_MULTIPLE_BSSID_NON_TRANSMITTING,
 +	NL80211_ATTR_MULTIPLE_BSSID_PARENT,
 +	NL80211_ATTR_MULTIPLE_BSSID_INDEX,
@@ -523,10 +526,10 @@ Index: hostapd-2020-07-02-58b384f4/src/drivers/nl80211_copy.h
  	/* add attributes here, update the policy in nl80211.c */
  
  	__NL80211_ATTR_AFTER_LAST,
-Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
+Index: hostapd-2020-10-14-0f07230e/src/ap/ieee802_11.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ieee802_11.c
-+++ hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ieee802_11.c
++++ hostapd-2020-10-14-0f07230e/src/ap/ieee802_11.c
 @@ -6,6 +6,7 @@
   * See README for more details.
   */
@@ -535,7 +538,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
  #include "utils/includes.h"
  
  #ifndef CONFIG_NATIVE_WINDOWS
-@@ -2712,7 +2713,11 @@ int hostapd_get_aid(struct hostapd_data
+@@ -2713,7 +2714,11 @@ int hostapd_get_aid(struct hostapd_data
  	}
  	if (j == 32)
  		return -1;
@@ -548,7 +551,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
  	if (aid > 2007)
  		return -1;
  
-@@ -4384,7 +4389,7 @@ static void handle_assoc(struct hostapd_
+@@ -4406,7 +4411,7 @@ static void handle_assoc(struct hostapd_
  		goto fail;
  	omit_rsnxe = !get_ie(pos, left, WLAN_EID_RSNX);
  
@@ -557,7 +560,7 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
  		hostapd_logger(hapd, mgmt->sa, HOSTAPD_MODULE_IEEE80211,
  			       HOSTAPD_LEVEL_INFO, "No room for more AIDs");
  		resp = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
-@@ -5645,4 +5650,117 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct
+@@ -5667,4 +5672,117 @@ u8 * hostapd_eid_wb_chsw_wrapper(struct
  	return eid;
  }
  
@@ -675,10 +678,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.c
 +}
 +
  #endif /* CONFIG_NATIVE_WINDOWS */
-Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.h
+Index: hostapd-2020-10-14-0f07230e/src/ap/ieee802_11.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ieee802_11.h
-+++ hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.h
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ieee802_11.h
++++ hostapd-2020-10-14-0f07230e/src/ap/ieee802_11.h
 @@ -119,7 +119,10 @@ u8 * hostapd_eid_time_zone(struct hostap
  int hostapd_update_time_adv(struct hostapd_data *hapd);
  void hostapd_client_poll_ok(struct hostapd_data *hapd, const u8 *addr);
@@ -698,10 +701,10 @@ Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11.h
 +u8 * hostapd_get_rsne(struct hostapd_data *hapd, u8 *pos, size_t len);
  
  #endif /* IEEE802_11_H */
-Index: hostapd-2020-07-02-58b384f4/src/common/ieee802_11_defs.h
+Index: hostapd-2020-10-14-0f07230e/src/common/ieee802_11_defs.h
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/common/ieee802_11_defs.h
-+++ hostapd-2020-07-02-58b384f4/src/common/ieee802_11_defs.h
+--- hostapd-2020-10-14-0f07230e.orig/src/common/ieee802_11_defs.h
++++ hostapd-2020-10-14-0f07230e/src/common/ieee802_11_defs.h
 @@ -452,6 +452,8 @@
  #define WLAN_EID_RSNX 244
  #define WLAN_EID_EXTENSION 255
@@ -711,11 +714,11 @@ Index: hostapd-2020-07-02-58b384f4/src/common/ieee802_11_defs.h
  /* Element ID Extension (EID 255) values */
  #define WLAN_EID_EXT_ASSOC_DELAY_INFO 1
  #define WLAN_EID_EXT_FILS_REQ_PARAMS 2
-Index: hostapd-2020-07-02-58b384f4/src/ap/ieee802_11_shared.c
+Index: hostapd-2020-10-14-0f07230e/src/ap/ieee802_11_shared.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/src/ap/ieee802_11_shared.c
-+++ hostapd-2020-07-02-58b384f4/src/ap/ieee802_11_shared.c
-@@ -356,6 +356,8 @@ static void hostapd_ext_capab_byte(struc
+--- hostapd-2020-10-14-0f07230e.orig/src/ap/ieee802_11_shared.c
++++ hostapd-2020-10-14-0f07230e/src/ap/ieee802_11_shared.c
+@@ -357,6 +357,8 @@ static void hostapd_ext_capab_byte(struc
  			*pos |= 0x02; /* Bit 17 - WNM-Sleep Mode */
  		if (hapd->conf->bss_transition)
  			*pos |= 0x08; /* Bit 19 - BSS Transition */

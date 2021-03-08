@@ -1,6 +1,6 @@
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
-@@ -4960,6 +4960,14 @@ static int wpa_driver_nl80211_sta_add(vo
+@@ -4964,6 +4964,14 @@ static int wpa_driver_nl80211_sta_add(vo
  				goto fail;
  		}
  

@@ -16,13 +16,16 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  drivers/net/wireless/ath/ath11k/qmi.c   | 42 +++++++++++++++++++++------------
  4 files changed, 37 insertions(+), 16 deletions(-)
 
---- a/drivers/net/wireless/ath/ath11k/ahb.c
-+++ b/drivers/net/wireless/ath/ath11k/ahb.c
-@@ -774,6 +774,13 @@ static int ath11k_ahb_remove(struct plat
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/ahb.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
+@@ -774,6 +774,14 @@ static int ath11k_ahb_remove(struct plat
  
  	reinit_completion(&ab->driver_recovery);
  
 +	if (test_bit(ATH11K_FLAG_QMI_FAIL, &ab->dev_flags)) {
++		qcom_unregister_ssr_notifier(&ab->qmi.ssr_nb);
 +		ath11k_ahb_power_down(ab);
 +		ath11k_debug_pdev_destroy(ab);
 +		ath11k_qmi_deinit_service(ab);
@@ -32,7 +35,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	if (test_bit(ATH11K_FLAG_RECOVERY, &ab->dev_flags))
  		wait_for_completion_timeout(&ab->driver_recovery,
  					    ATH11K_AHB_RECOVERY_TIMEOUT);
-@@ -782,8 +789,8 @@ static int ath11k_ahb_remove(struct plat
+@@ -782,8 +790,8 @@ static int ath11k_ahb_remove(struct plat
  	cancel_work_sync(&ab->restart_work);
  
  	ath11k_core_deinit(ab);
@@ -42,8 +45,10 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	ath11k_hal_srng_deinit(ab);
  	ath11k_ce_free_pipes(ab);
  
---- a/drivers/net/wireless/ath/ath11k/core.h
-+++ b/drivers/net/wireless/ath/ath11k/core.h
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/core.h
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
 @@ -197,6 +197,7 @@ enum ath11k_dev_flags {
  	ATH11K_FLAG_UNREGISTERING,
  	ATH11K_FLAG_REGISTERED,
@@ -52,9 +57,11 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  };
  
  #define ATH11K_STATS_MGMT_FRM_TYPE_MAX 16
---- a/drivers/net/wireless/ath/ath11k/debug.c
-+++ b/drivers/net/wireless/ath/ath11k/debug.c
-@@ -1274,6 +1274,7 @@ int ath11k_debug_pdev_create(struct ath1
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/debug.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/debug.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/debug.c
+@@ -1361,6 +1361,7 @@ int ath11k_debug_pdev_create(struct ath1
  void ath11k_debug_pdev_destroy(struct ath11k_base *ab)
  {
  }
@@ -62,9 +69,33 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  
  int ath11k_debug_soc_create(struct ath11k_base *ab)
  {
---- a/drivers/net/wireless/ath/ath11k/qmi.c
-+++ b/drivers/net/wireless/ath/ath11k/qmi.c
-@@ -3238,34 +3238,38 @@ ath11k_qmi_driver_event_post(struct ath1
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/qmi.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
+@@ -2694,9 +2694,6 @@ static int ath11k_qmi_assign_target_mem_
+ 			idx++;
+ 			break;
+ 		case CALDB_MEM_REGION_TYPE:
+-			if (ab->qmi.target_mem[i].size > ab->hw_params.fw.cal_size)
+-				ath11k_warn(ab, "qmi mem size is low to load caldata\n");
+-
+ 			if (ath11k_host_ddr_addr) {
+ 				addr = ath11k_host_ddr_addr +
+ 					ATH11K_HOST_DDR_CALDB_OFFSET;
+@@ -3015,7 +3012,10 @@ out:
+ 	ath11k_core_free_bdf(ab, &bd);
+ 	ath11k_dbg(ab, ATH11K_DBG_QMI, "qmi BDF downloaded\n");
+ 
+-	return 0;
++	if (ath11k_ftm_mode)
++		return 0;
++	else
++		return ret;
+ }
+ 
+ static int ath11k_qmi_m3_load(struct ath11k_base *ab)
+@@ -3503,34 +3503,38 @@ ath11k_qmi_driver_event_post(struct ath1
  	return 0;
  }
  
@@ -110,7 +141,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  }
  
  int ath11k_qmi_pci_alloc_qdss_mem(struct ath11k_qmi *qmi)
-@@ -3435,28 +3439,29 @@ static void ath11k_qmi_event_qdss_trace_
+@@ -3700,28 +3704,29 @@ static void ath11k_qmi_event_qdss_trace_
  	ath11k_dbg(ab, ATH11K_DBG_QMI, "QDSS configuration is completed and trace started\n");
  }
  
@@ -145,7 +176,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  }
  
  static void ath11k_qmi_msg_mem_request_cb(struct qmi_handle *qmi_hdl,
-@@ -3745,6 +3750,7 @@ static void ath11k_qmi_driver_event_work
+@@ -4134,6 +4139,7 @@ static void ath11k_qmi_driver_event_work
  					      event_work);
  	struct ath11k_qmi_driver_event *event;
  	struct ath11k_base *ab = qmi->ab;
@@ -153,7 +184,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  
  	spin_lock(&qmi->event_lock);
  	while (!list_empty(&qmi->event_list)) {
-@@ -3758,17 +3764,17 @@ static void ath11k_qmi_driver_event_work
+@@ -4147,17 +4153,17 @@ static void ath11k_qmi_driver_event_work
  
  		switch (event->type) {
  		case ATH11K_QMI_EVENT_SERVER_ARRIVE:
@@ -174,7 +205,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  			break;
  		case ATH11K_QMI_EVENT_FW_READY:
  			if (test_bit(ATH11K_FLAG_REGISTERED, &ab->dev_flags)) {
-@@ -3783,6 +3789,7 @@ static void ath11k_qmi_driver_event_work
+@@ -4172,6 +4178,7 @@ static void ath11k_qmi_driver_event_work
  				clear_bit(ATH11K_FLAG_RECOVERY, &ab->dev_flags);
  				ath11k_core_qmi_firmware_ready(ab);
  				set_bit(ATH11K_FLAG_REGISTERED, &ab->dev_flags);
@@ -182,7 +213,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  			}
  			break;
  		case ATH11K_QMI_EVENT_COLD_BOOT_CAL_DONE:
-@@ -3801,6 +3808,9 @@ static void ath11k_qmi_driver_event_work
+@@ -4190,6 +4197,9 @@ static void ath11k_qmi_driver_event_work
  			break;
  		}
  		kfree(event);
@@ -192,7 +223,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  		spin_lock(&qmi->event_lock);
  	}
  	spin_unlock(&qmi->event_lock);
-@@ -3854,6 +3864,7 @@ out:
+@@ -4243,6 +4253,7 @@ out:
  	kfree(req);
  	return ret;
  }
@@ -200,8 +231,10 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  
  int ath11k_qmi_init_service(struct ath11k_base *ab)
  {
---- a/drivers/net/wireless/ath/ath11k/pci.c
-+++ b/drivers/net/wireless/ath/ath11k/pci.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/pci.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.c
 @@ -1107,9 +1107,17 @@ static void ath11k_pci_remove(struct pci
  	struct ath11k_base *ab = pci_get_drvdata(pdev);
  	struct ath11k_pci *ab_pci = ath11k_pci_priv(ab);

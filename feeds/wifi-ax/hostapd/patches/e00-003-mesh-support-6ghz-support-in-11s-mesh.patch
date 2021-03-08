@@ -23,10 +23,10 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
  wpa_supplicant/wpa_supplicant.c | 54 +++++++++++++++++++++------------
  2 files changed, 41 insertions(+), 21 deletions(-)
 
-Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh.c
+Index: hostapd-2020-10-14-0f07230e/wpa_supplicant/mesh.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/wpa_supplicant/mesh.c
-+++ hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh.c
+--- hostapd-2020-10-14-0f07230e.orig/wpa_supplicant/mesh.c
++++ hostapd-2020-10-14-0f07230e/wpa_supplicant/mesh.c
 @@ -370,6 +370,11 @@ static int wpa_supplicant_mesh_init(stru
  	}
  	if (ssid->noscan)
@@ -39,11 +39,11 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh.c
  	if (ssid->ht40)
  		conf->secondary_channel = ssid->ht40;
  	if (conf->hw_mode == HOSTAPD_MODE_IEEE80211A && ssid->vht) {
-Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
+Index: hostapd-2020-10-14-0f07230e/wpa_supplicant/wpa_supplicant.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/wpa_supplicant/wpa_supplicant.c
-+++ hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
-@@ -2401,7 +2401,9 @@ void ibss_mesh_setup_freq(struct wpa_sup
+--- hostapd-2020-10-14-0f07230e.orig/wpa_supplicant/wpa_supplicant.c
++++ hostapd-2020-10-14-0f07230e/wpa_supplicant/wpa_supplicant.c
+@@ -2418,7 +2418,9 @@ void ibss_mesh_setup_freq(struct wpa_sup
  	struct hostapd_hw_modes *mode = NULL;
  	int ht40plus[] = { 1, 2, 3, 4, 5, 6, 36, 44, 52, 60, 100, 108, 116, 124, 132, 149, 157,
  			   184, 192 };
@@ -54,7 +54,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  	struct hostapd_channel_data *pri_chan = NULL, *sec_chan = NULL;
  	u8 channel;
  	int i, chan_idx, ht40 = -1, res, obss_scan = !(ssid->noscan);
-@@ -2409,7 +2411,7 @@ void ibss_mesh_setup_freq(struct wpa_sup
+@@ -2426,7 +2428,7 @@ void ibss_mesh_setup_freq(struct wpa_sup
  	struct hostapd_freq_params vht_freq;
  	int chwidth, seg0, seg1;
  	u32 vht_caps = 0;
@@ -63,7 +63,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  	int dfs_enabled = wpa_s->conf->country[0] &&
  		(wpa_s->drv_flags & WPA_DRIVER_FLAGS_RADAR);
  
-@@ -2465,9 +2467,16 @@ void ibss_mesh_setup_freq(struct wpa_sup
+@@ -2482,9 +2484,16 @@ void ibss_mesh_setup_freq(struct wpa_sup
  	if (!mode)
  		return;
  
@@ -80,7 +80,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  #ifdef CONFIG_HT_OVERRIDES
  	if (ssid->disable_ht) {
  		freq->ht_enabled = 0;
-@@ -2606,8 +2615,6 @@ skip_ht40:
+@@ -2620,8 +2629,6 @@ skip_ht40:
  	    !(wpa_s->drv_flags & WPA_DRIVER_FLAGS_VHT_IBSS))
  		return;
  
@@ -89,7 +89,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  #ifdef CONFIG_VHT_OVERRIDES
  	if (ssid->disable_vht) {
  		freq->vht_enabled = 0;
-@@ -2615,12 +2622,16 @@ skip_ht40:
+@@ -2629,12 +2636,16 @@ skip_ht40:
  	}
  #endif /* CONFIG_VHT_OVERRIDES */
  
@@ -108,7 +108,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  
  #ifdef CONFIG_HE_OVERRIDES
  	if (is_24ghz)
-@@ -2628,16 +2639,14 @@ skip_ht40:
+@@ -2642,16 +2653,14 @@ skip_ht40:
  #endif /* CONFIG_HE_OVERRIDES */
  
  	/* setup center_freq1, bandwidth */
@@ -129,7 +129,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  		struct hostapd_channel_data *chan;
  
  		chan = hw_get_channel_chan(mode, i, NULL);
-@@ -2653,16 +2662,20 @@ skip_ht40:
+@@ -2667,16 +2676,20 @@ skip_ht40:
  	}
  
  	chwidth = CHANWIDTH_80MHZ;
@@ -154,7 +154,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  				struct hostapd_channel_data *chan;
  
  				chan = hw_get_channel_chan(mode, i, NULL);
-@@ -2677,9 +2690,10 @@ skip_ht40:
+@@ -2691,9 +2704,10 @@ skip_ht40:
  
  				/* Found a suitable second segment for 80+80 */
  				chwidth = CHANWIDTH_80P80MHZ;
@@ -168,7 +168,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  			}
  
  			if (chwidth == CHANWIDTH_80P80MHZ)
-@@ -2697,7 +2711,7 @@ skip_ht40:
+@@ -2711,7 +2725,7 @@ skip_ht40:
  		}
  	} else if (ssid->max_oper_chwidth == CHANWIDTH_USE_HT) {
  		chwidth = CHANWIDTH_USE_HT;
@@ -177,10 +177,10 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/wpa_supplicant.c
  #ifdef CONFIG_HT_OVERRIDES
  		if (ssid->disable_ht40)
  			seg0 = 0;
-Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/ap.c
+Index: hostapd-2020-10-14-0f07230e/wpa_supplicant/ap.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/wpa_supplicant/ap.c
-+++ hostapd-2020-07-02-58b384f4/wpa_supplicant/ap.c
+--- hostapd-2020-10-14-0f07230e.orig/wpa_supplicant/ap.c
++++ hostapd-2020-10-14-0f07230e/wpa_supplicant/ap.c
 @@ -237,11 +237,11 @@ int wpa_supplicant_conf_ap_ht(struct wpa
  				wpas_conf_ap_vht(wpa_s, ssid, conf, mode);
  			}
@@ -197,10 +197,10 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/ap.c
  	}
  
  	if (conf->secondary_channel) {
-Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh_mpm.c
+Index: hostapd-2020-10-14-0f07230e/wpa_supplicant/mesh_mpm.c
 ===================================================================
---- hostapd-2020-07-02-58b384f4.orig/wpa_supplicant/mesh_mpm.c
-+++ hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh_mpm.c
+--- hostapd-2020-10-14-0f07230e.orig/wpa_supplicant/mesh_mpm.c
++++ hostapd-2020-10-14-0f07230e/wpa_supplicant/mesh_mpm.c
 @@ -251,6 +251,9 @@ static void mesh_mpm_send_plink_action(s
  			   HE_MAX_MCS_CAPAB_SIZE +
  			   HE_MAX_PPET_CAPAB_SIZE;
@@ -219,7 +219,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh_mpm.c
  		wpabuf_put_data(buf, he_capa_oper, pos - he_capa_oper);
  	}
  #endif /* CONFIG_IEEE80211AX */
-@@ -746,6 +750,7 @@ static struct sta_info * mesh_mpm_add_pe
+@@ -749,6 +753,7 @@ static struct sta_info * mesh_mpm_add_pe
  #ifdef CONFIG_IEEE80211AX
  	copy_sta_he_capab(data, sta, IEEE80211_MODE_MESH,
  			  elems->he_capabilities, elems->he_capabilities_len);
@@ -227,7 +227,7 @@ Index: hostapd-2020-07-02-58b384f4/wpa_supplicant/mesh_mpm.c
  #endif /* CONFIG_IEEE80211AX */
  
  	if (hostapd_get_aid(data, sta) < 0) {
-@@ -767,6 +772,7 @@ static struct sta_info * mesh_mpm_add_pe
+@@ -770,6 +775,7 @@ static struct sta_info * mesh_mpm_add_pe
  	params.vht_capabilities = sta->vht_capabilities;
  	params.he_capab = sta->he_capab;
  	params.he_capab_len = sta->he_capab_len;

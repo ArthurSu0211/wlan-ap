@@ -16,11 +16,9 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
  util.c      | 14 ++++++++++----
  3 files changed, 18 insertions(+), 10 deletions(-)
 
-diff --git a/interface.c b/interface.c
-index 931d77a278c0..c37cd08cc56c 100644
 --- a/interface.c
 +++ b/interface.c
-@@ -755,8 +755,10 @@ COMMAND(switch, freq,
+@@ -745,8 +745,10 @@ COMMAND(switch, freq,
  	"<control freq> [5|10|20|40|80|80+80|160] [<center1_freq> [<center2_freq>]] [beacons <count>] [block-tx]",
  	NL80211_CMD_CHANNEL_SWITCH, 0, CIB_NETDEV, handle_freq,
  	"Switch the operating channel by sending a channel switch announcement (CSA).");
@@ -33,11 +31,9 @@ index 931d77a278c0..c37cd08cc56c 100644
  
  static int handle_retry_count(struct nl80211_state *state,
  			      struct nl_msg *msg,
-diff --git a/phy.c b/phy.c
-index 7dbf66200a51..37079b31d7d9 100644
 --- a/phy.c
 +++ b/phy.c
-@@ -222,9 +222,9 @@ static int handle_chan(struct nl80211_state *state, struct nl_msg *msg,
+@@ -222,9 +222,9 @@ static int handle_chan(struct nl80211_st
  
  	return put_chandef(msg, &chandef);
  }
@@ -64,11 +60,9 @@ index 7dbf66200a51..37079b31d7d9 100644
  	"freq <frequency> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz]\n"
  	"freq <frequency> [5|10|20|40|80|80+80|160] [<center1_freq> [<center2_freq>]]",
  	NL80211_CMD_RADAR_DETECT, 0, CIB_NETDEV, handle_cac_trigger,
-diff --git a/util.c b/util.c
-index 37c1447bb877..3dbe7c8fcc9f 100644
 --- a/util.c
 +++ b/util.c
-@@ -571,7 +571,8 @@ static int parse_freqs(struct chandef *chandef, int argc, char **argv,
+@@ -578,7 +578,8 @@ static int parse_freqs(struct chandef *c
   * user by giving "NOHT" instead.
   *
   * The working specifier if chan is set are:
@@ -78,7 +72,7 @@ index 37c1447bb877..3dbe7c8fcc9f 100644
   *
   * And if frequency is set:
   *   <freq> [NOHT|HT20|HT40+|HT40-|5MHz|10MHz|80MHz]
-@@ -640,7 +641,12 @@ int parse_freqchan(struct chandef *chandef, bool chan, int argc, char **argv,
+@@ -647,7 +648,12 @@ int parse_freqchan(struct chandef *chand
  	if (chan) {
  		enum nl80211_band band;
  
@@ -92,7 +86,7 @@ index 37c1447bb877..3dbe7c8fcc9f 100644
  		freq = ieee80211_channel_to_frequency(freq, band);
  	}
  	chandef->control_freq = freq;
-@@ -648,9 +654,9 @@ int parse_freqchan(struct chandef *chandef, bool chan, int argc, char **argv,
+@@ -655,9 +661,9 @@ int parse_freqchan(struct chandef *chand
  	chandef->center_freq1 = freq;
  
  	/* Try to parse HT mode definitions */
@@ -104,6 +98,3 @@ index 37c1447bb877..3dbe7c8fcc9f 100644
  				chanmode_selected = &chanmode[i];
  				_parsed += 1;
  				break;
--- 
-2.17.1
-

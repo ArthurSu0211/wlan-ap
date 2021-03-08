@@ -79,7 +79,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  #endif /* CONFIG_IEEE80211AX */
 --- a/src/common/ieee802_11_defs.h
 +++ b/src/common/ieee802_11_defs.h
-@@ -2216,7 +2216,10 @@ struct ieee80211_spatial_reuse {
+@@ -2219,7 +2219,10 @@ struct ieee80211_spatial_reuse {
  
  /* HE Capabilities Information defines */
  
@@ -91,7 +91,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  
  #define HE_PHYCAP_CHANNEL_WIDTH_SET_IDX		0
  #define HE_PHYCAP_CHANNEL_WIDTH_MASK		((u8) (BIT(1) | BIT(2) | \
-@@ -2233,6 +2236,13 @@ struct ieee80211_spatial_reuse {
+@@ -2236,6 +2239,13 @@ struct ieee80211_spatial_reuse {
  #define HE_PHYCAP_MU_BEAMFORMER_CAPAB_IDX	4
  #define HE_PHYCAP_MU_BEAMFORMER_CAPAB		((u8) BIT(1))
  

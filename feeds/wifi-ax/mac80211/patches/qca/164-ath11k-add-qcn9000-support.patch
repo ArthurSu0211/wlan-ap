@@ -12,8 +12,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  drivers/net/wireless/ath/ath11k/pci.h |  1 +
  2 files changed, 23 insertions(+), 17 deletions(-)
 
---- a/drivers/net/wireless/ath/ath11k/pci.c
-+++ b/drivers/net/wireless/ath/ath11k/pci.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/pci.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.c
 @@ -12,6 +12,7 @@
  #include "hif.h"
  #include "mhi.h"
@@ -103,7 +105,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 -	ab->qmi.service_ins_id = ATH11K_QMI_WLFW_SERVICE_INS_ID_V01_QCA6390;
 +	ab->qmi.service_ins_id = ab->hw_params.qmi_service_ins_id;
 +
-+	ret = of_property_read_u32(ab->dev->of_node, "qrtr_node_id", &node_id);
++	ret = of_property_read_u32(ab->dev->of_node, "qrtr_instance_id", &node_id);
 +	if (!ret)
 +		ab->qmi.service_ins_id += node_id;
  }
@@ -187,8 +189,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  	ret = ath11k_pci_claim(ab_pci, pdev);
  	if (ret) {
  		ath11k_err(ab, "failed to claim device: %d\n", ret);
---- a/drivers/net/wireless/ath/ath11k/pci.h
-+++ b/drivers/net/wireless/ath/ath11k/pci.h
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.h
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/pci.h
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/pci.h
 @@ -9,6 +9,9 @@
  
  #include "core.h"
@@ -207,8 +211,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  	unsigned long mhi_state;
  	u32 register_window;
  
---- a/drivers/net/wireless/ath/ath11k/ahb.c
-+++ b/drivers/net/wireless/ath/ath11k/ahb.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/ahb.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/ahb.c
 @@ -369,7 +369,7 @@ static void ath11k_ahb_init_qmi_ce_confi
  	cfg->tgt_ce = ab->hw_params.target_ce_config;
  	cfg->svc_to_ce_map_len = ab->hw_params.svc_to_ce_map_len;
@@ -218,8 +224,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  }
  
  static void ath11k_ahb_free_ext_irq(struct ath11k_base *ab)
---- a/drivers/net/wireless/ath/ath11k/core.c
-+++ b/drivers/net/wireless/ath/ath11k/core.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/core.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.c
 @@ -44,6 +44,7 @@ static const struct ath11k_hw_params ath
  		.ring_mask = &ath11k_hw_ring_mask_ipq8074,
  		.internal_sleep_clock = false,
@@ -263,8 +271,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  };
  
  static int ath11k_core_create_board_name(struct ath11k_base *ab, char *name,
---- a/drivers/net/wireless/ath/ath11k/hw.h
-+++ b/drivers/net/wireless/ath/ath11k/hw.h
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/hw.h
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/hw.h
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/hw.h
 @@ -136,6 +136,7 @@ struct ath11k_hw_params {
  	bool internal_sleep_clock;
  
@@ -273,8 +283,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  	const struct ce_attr *host_ce_config;
  	u32 ce_count;
  	const struct ce_pipe_config *target_ce_config;
---- a/drivers/net/wireless/ath/ath11k/core.h
-+++ b/drivers/net/wireless/ath/ath11k/core.h
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/core.h
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/core.h
 @@ -107,6 +107,7 @@ enum ath11k_hw_rev {
  	ATH11K_HW_IPQ8074,
  	ATH11K_HW_IPQ6018,
@@ -283,8 +295,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  };
  
  enum ath11k_firmware_mode {
---- a/drivers/net/wireless/ath/ath11k/qmi.h
-+++ b/drivers/net/wireless/ath/ath11k/qmi.h
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.h
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/qmi.h
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.h
 @@ -22,10 +22,10 @@
  #define ATH11K_QMI_WLFW_SERVICE_INS_ID_V01	0x02
  #define ATH11K_QMI_WLFW_SERVICE_INS_ID_V01_QCA6390	0x01
@@ -297,8 +311,10 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  #define ATH11K_QMI_MAX_QDSS_CONFIG_FILE_NAME_SIZE 64
  #define ATH11K_QMI_DEFAULT_QDSS_CONFIG_FILE_NAME "qdss_trace_config.bin"
  
---- a/drivers/net/wireless/ath/ath11k/mhi.c
-+++ b/drivers/net/wireless/ath/ath11k/mhi.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/mhi.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/mhi.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/mhi.c
 @@ -3,14 +3,16 @@
  
  #include <linux/msi.h>
@@ -520,8 +536,19 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  	if (ret) {
  		ath11k_err(ab, "failed to register to mhi bus, err = %d\n", ret);
  		kfree(mhi_ctrl);
---- a/drivers/net/wireless/ath/ath11k/qmi.c
-+++ b/drivers/net/wireless/ath/ath11k/qmi.c
+Index: backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
+===================================================================
+--- backports-20200902_001-4.4.60-931c337125.orig/drivers/net/wireless/ath/ath11k/qmi.c
++++ backports-20200902_001-4.4.60-931c337125/drivers/net/wireless/ath/ath11k/qmi.c
+@@ -2011,7 +2011,7 @@ static int ath11k_qmi_respond_fw_mem_req
+ 	 * failure to FW and FW will then request mulitple blocks of small
+ 	 * chunk size memory.
+ 	 */
+-	if (!ab->bus_params.fixed_mem_region && ab->qmi.mem_seg_count <= 2) {
++	if (!ab->bus_params.fixed_mem_region && ab->qmi.mem_seg_count <= 3) {
+ 		ath11k_dbg(ab, ATH11K_DBG_QMI, "qmi delays mem_request %d\n",
+ 			   ab->qmi.mem_seg_count);
+ 		memset(req, 0, sizeof(*req));
 @@ -2061,17 +2061,18 @@ static void ath11k_qmi_free_target_mem_c
  {
  	int i;
@@ -576,7 +603,7 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  		case BDF_MEM_REGION_TYPE:
  			ab->qmi.target_mem[idx].paddr = ab->hw_params.bdf_addr;
  			ab->qmi.target_mem[idx].vaddr = NULL;
-@@ -2113,23 +2130,18 @@ static int ath11k_qmi_assign_target_mem_
+@@ -2113,23 +2130,20 @@ static int ath11k_qmi_assign_target_mem_
  			idx++;
  			break;
  		case CALDB_MEM_REGION_TYPE:
@@ -598,7 +625,9 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
 -				ab->qmi.target_mem[idx].paddr = caldb_location[ab->qmi.target_mem_mode];
 -				ab->qmi.target_mem[idx].vaddr = caldb_location[ab->qmi.target_mem_mode];
 +				ab->qmi.target_mem[idx].paddr = (u32)addr;
-+				ab->qmi.target_mem[idx].vaddr = (u32)addr;
++				ab->qmi.target_mem[idx].vaddr =
++					ioremap(ab->qmi.target_mem[idx].paddr,
++							ab->qmi.target_mem[i].size);
  			} else {
 -				ab->qmi.target_mem[idx].paddr = 0;
 -				ab->qmi.target_mem[idx].vaddr = 0;
@@ -607,3 +636,12 @@ Signed-off-by: Anilkumar Kolli <akolli@codeaurora.org>
  			}
  			ab->qmi.target_mem[idx].size = ab->qmi.target_mem[i].size;
  			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
+@@ -2859,7 +2873,7 @@ static void ath11k_qmi_msg_mem_request_c
+ 				    ret);
+ 			return;
+ 		}
+-	} else if (msg->mem_seg_len > 2) {
++	} else if (msg->mem_seg_len > 3) {
+ 		ret = ath11k_qmi_alloc_target_mem_chunk(ab);
+ 		if (ret) {
+ 			ath11k_warn(ab, "qmi failed to alloc target memory: %d\n",
