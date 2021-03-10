@@ -1,9 +1,9 @@
 --- a/interfaces/opensync.ovsschema
 +++ b/interfaces/opensync.ovsschema
-@@ -9368,6 +9368,109 @@
-             }
-        },
-       "isRoot": true
+@@ -9430,6 +9430,109 @@
+       },
+       "isRoot": true,
+       "maxRows": 1
 +    },
 +    "radius_config": {
 +        "columns": {
