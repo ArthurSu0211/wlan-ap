@@ -1,11 +1,11 @@
 --- a/interfaces/opensync.ovsschema
 +++ b/interfaces/opensync.ovsschema
-@@ -9430,6 +9430,109 @@
+@@ -9430,6 +9430,101 @@
        },
        "isRoot": true,
        "maxRows": 1
 +    },
-+    "radius_config": {
++    "Radius_Proxy_Config": {
 +        "columns": {
 +            "radius_config_name": {
 +                "type": {
@@ -16,10 +16,28 @@
 +                "max": 1
 +              }
 +            },
++            "radsec": {
++                "type": {
++                "key": {
++                  "type": "boolean"
++                },
++                "min": 1,
++                "max": 1
++              }
++            },
 +            "server": {
 +                "type": {
 +                "key": {
 +                  "type": "string"
++                },
++                "min": 1,
++                "max": 1
++              }
++            },
++            "port": {
++              "type": {
++                "key": {
++                  "type": "integer"
 +                },
 +                "min": 1,
 +                "max": 1
@@ -58,7 +76,7 @@
 +                    "max": 1
 +                }
 +              },
-+            "passpharase": {
++            "passphrase": {
 +                "type": {
 +                    "key": {
 +                        "type": "string",
@@ -68,41 +86,15 @@
 +                    "min": 0,
 +                    "max": 1
 +                }
-+              }
-+       },
-+      "isRoot": true
-+    },
-+    "realm_config": {
-+        "columns": {
-+            "realm_config_name": {
-+                "type": {
-+                "key": {
-+                  "type": "string"
-+                },
-+                "min": 1,
-+                "max": 1
-+              }
-+            },
-+            "realm": {
-+                "type": {
-+                    "key": {
-+                        "type": "string",
-+                        "minLength": 1,
-+                        "maxLength": 256
-+                    },
-+                    "min": 0,
-+                    "max": 1
-+                }
 +              },
-+            "server": {
++            "realm": {
 +              "type": {
 +                "key": {
-+                  "type": "uuid",
-+                  "refTable": "radius_config",
-+                  "refType": "weak"
++                  "type": "string",
++                  "maxLength": 256
 +                },
-+                "min": 1,
-+                "max": 1
++                "min": 0,
++                "max": 16
 +              }
 +            }
 +         },
