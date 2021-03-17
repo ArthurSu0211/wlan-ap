@@ -77,6 +77,7 @@ packages:
   - kmod-iptunnel
   - kmod-iptunnel6
   - eapol-test
+  - hostapd-utils
 
 diffconfig: |
   CONFIG_OPENSSL_ENGINE=y
@@ -95,3 +96,4 @@ diffconfig: |
   CONFIG_PREINITOPT=y
   CONFIG_TARGET_PREINIT_SUPPRESS_STDERR=y
   CONFIG_TARGET_PREINIT_DISABLE_FAILSAFE=y
+  CONFIG_PACKAGE_hostapd-utils=y

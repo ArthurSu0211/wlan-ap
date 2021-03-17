@@ -53,19 +53,11 @@ int ubus_get_noise(const char *if_name, uint32_t *noise)
 
 int ubus_set_channel_switch(const char *if_name, uint32_t frequency)
 {
-	uint32_t id;
-	static struct blob_buf b;
 	char path[64];
 
-	snprintf(path, sizeof(path), "hostapd.%s", if_name);
+	snprintf(path, sizeof(path), "hostapd_cli -i %s chan_switch 1 %d", if_name, frequency);
 
-	if (ubus_lookup_id(ubus, path, &id))
-		return -1;
-
-	blob_buf_init(&b, 0);
-	blobmsg_add_u32(&b, "freq", frequency);
-	blobmsg_add_u32(&b, "bcn_count", 1);
-	return ubus_invoke(ubus, id, "switch_chan", b.head, NULL, NULL, 1000);
+	return system(path);
 }
 
 static struct ubus_instance ubus_instance = {
