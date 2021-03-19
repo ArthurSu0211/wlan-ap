@@ -136,7 +136,7 @@ Index: opensync-2.0.5.0/src/lib/schema/inc/schema_consts.h
  #define SCHEMA_CONSTS_DISABLE_B_RATES	"disable_b_rates"
  #define SCHEMA_CONSTS_IEEE80211k	"ieee80211k"
  #define SCHEMA_CONSTS_DYNAMIC_VLAN	"dynamic_vlan"
-+#define SCHEMA_CONSTS_RADSECPROXY	"radsecproxy"
++#define SCHEMA_CONSTS_RADPROXY	"radproxy"
  
  /* radio Custom options */
  #define SCHEMA_CONSTS_LOCAL_PWR_CONSTRAINT "local_pwr_constraint"

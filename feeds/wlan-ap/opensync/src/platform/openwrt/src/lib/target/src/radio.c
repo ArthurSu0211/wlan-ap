@@ -33,7 +33,7 @@ ovsdb_table_t table_Hotspot20_Icon_Config;
 
 ovsdb_table_t table_APC_Config;
 ovsdb_table_t table_APC_State;
-unsigned int radsecproxy_apc;
+unsigned int radproxy_apc;
 
 static struct uci_package *wireless;
 struct uci_context *uci;
@@ -735,7 +735,7 @@ static void callback_APC_State(ovsdb_update_monitor_t *mon,
 	     (conf->mode_changed)? "changed":"unchanged");
 
 	/* APC changed: if radsecproxy enabled then restart wireless */
-	if (radsecproxy_apc)
+	if (radproxy_apc)
 		system("ubus call service event '{\"type\": \"config.change\", \"data\": { \"package\": \"wireless\" }}'");
 }
 

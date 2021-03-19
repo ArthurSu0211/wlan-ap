@@ -129,7 +129,7 @@ enum {
 	WIF_ATTR_DVLAN_NAMING,
 	WIF_ATTR_DVLAN_BRIDGE,
 	WIF_ATTR_MIN_HW_MODE,
-	WIF_ATTR_RADSECPROXY,
+	WIF_ATTR_RADPROXY,
 	__WIF_ATTR_MAX,
 };
 
@@ -221,7 +221,7 @@ static const struct blobmsg_policy wifi_iface_policy[__WIF_ATTR_MAX] = {
 	[WIF_ATTR_DVLAN_NAMING] = { .name = "vlan_naming", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_DVLAN_BRIDGE] = { .name = "vlan_bridge", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_MIN_HW_MODE] = { .name = "min_hw_mode", BLOBMSG_TYPE_STRING },
-	[WIF_ATTR_RADSECPROXY] = { .name = "radsecproxy", BLOBMSG_TYPE_STRING },
+	[WIF_ATTR_RADPROXY] = { .name = "radsecproxy", BLOBMSG_TYPE_STRING },
 };
 
 const struct uci_blob_param_list wifi_iface_param = {
@@ -563,10 +563,10 @@ const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 	SCHEMA_CONSTS_RADIUS_NAS_ID,
 	SCHEMA_CONSTS_RADIUS_NAS_IP,
 	SCHEMA_CONSTS_DYNAMIC_VLAN,
-	SCHEMA_CONSTS_RADSECPROXY,
+	SCHEMA_CONSTS_RADPROXY,
 };
 
-extern unsigned int radsecproxy_apc;
+extern unsigned int radproxy_apc;
 
 static bool vif_config_custom_opt_get_proxy(
                                       const struct schema_Wifi_VIF_Config *vconf)
@@ -586,11 +586,11 @@ static bool vif_config_custom_opt_get_proxy(
 
 		if (strcmp(opt, "radsecproxy") == 0) {
 			if (strcmp(value, "1") == 0) {
-				radsecproxy_apc |= 1;
+				radproxy_apc |= 1;
 				return true;
 			}
 			else {
-				radsecproxy_apc |= 0;
+				radproxy_apc |= 0;
 				return false;
 			}
 		}
@@ -812,8 +812,8 @@ static void vif_state_custom_options_get(struct schema_Wifi_VIF_State *vstate,
 							buf);
 			}
 		} else if (strcmp(opt, "radsecproxy") == 0) {
-			if (tb[WIF_ATTR_RADSECPROXY]) {
-				buf = blobmsg_get_string(tb[WIF_ATTR_RADSECPROXY]);
+			if (tb[WIF_ATTR_RADPROXY]) {
+				buf = blobmsg_get_string(tb[WIF_ATTR_RADPROXY]);
 				set_custom_option_state(vstate, &index,
 							custom_options_table[i],
 							buf);
