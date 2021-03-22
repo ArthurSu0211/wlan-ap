@@ -221,7 +221,7 @@ static const struct blobmsg_policy wifi_iface_policy[__WIF_ATTR_MAX] = {
 	[WIF_ATTR_DVLAN_NAMING] = { .name = "vlan_naming", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_DVLAN_BRIDGE] = { .name = "vlan_bridge", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_MIN_HW_MODE] = { .name = "min_hw_mode", BLOBMSG_TYPE_STRING },
-	[WIF_ATTR_RADPROXY] = { .name = "radsecproxy", BLOBMSG_TYPE_STRING },
+	[WIF_ATTR_RADPROXY] = { .name = "radproxy", BLOBMSG_TYPE_STRING },
 };
 
 const struct uci_blob_param_list wifi_iface_param = {
@@ -584,7 +584,7 @@ static bool vif_config_custom_opt_get_proxy(
 		else
 			strncpy(value, val, 20);
 
-		if (strcmp(opt, "radsecproxy") == 0) {
+		if (strcmp(opt, "radproxy") == 0) {
 			if (strcmp(value, "1") == 0) {
 				radproxy_apc |= 1;
 				return true;
@@ -676,8 +676,8 @@ static void vif_config_custom_opt_set(struct blob_buf *b, struct blob_buf *del,
 				strncpy(value, "br-wan.", 20);
 				blobmsg_add_string(del, "vlan_bridge", value);
 			}
-		} else if (strcmp(opt, "radsecproxy") == 0)
-			blobmsg_add_string(b, "radsecproxy", value);
+		} else if (strcmp(opt, "radproxy") == 0)
+			blobmsg_add_string(b, "radproxy", value);
 	}
 }
 
@@ -811,7 +811,7 @@ static void vif_state_custom_options_get(struct schema_Wifi_VIF_State *vstate,
 							custom_options_table[i],
 							buf);
 			}
-		} else if (strcmp(opt, "radsecproxy") == 0) {
+		} else if (strcmp(opt, "radproxy") == 0) {
 			if (tb[WIF_ATTR_RADPROXY]) {
 				buf = blobmsg_get_string(tb[WIF_ATTR_RADPROXY]);
 				set_custom_option_state(vstate, &index,

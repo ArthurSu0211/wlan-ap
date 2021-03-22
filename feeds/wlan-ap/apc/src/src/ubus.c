@@ -1,13 +1,4 @@
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- */
+/* SPDX-License-Identifier: BSD-3-Clause */
 #define _GNU_SOURCE
 
 #include <arpa/inet.h>
@@ -165,14 +156,12 @@ ubus_init(void) {
 	if (!ubus_ctx)
 		return -EIO;
 
-	printf("APC ubus Add uloop\n");
 	ubus_add_uloop(ubus_ctx);
 #ifdef FD_CLOEXEC
 	fcntl(ubus_ctx->sock.fd, F_SETFD,
 	      fcntl(ubus_ctx->sock.fd, F_GETFD) | FD_CLOEXEC);
 #endif
 	add_object(&apc_object);
-	printf("APC Add notify timer\n");
 	notify_timer = tm_new_set(apc_send_notification, NULL,
 				  0, APC_NOTIFY_INTERVAL);
 	if (notify_timer) {

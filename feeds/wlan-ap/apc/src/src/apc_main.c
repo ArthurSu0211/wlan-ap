@@ -232,7 +232,6 @@ int set_socket(void)
 
 static void check_timer_handler(struct uloop_timeout *timeout)
 {
-	printf("APC check_timer_handler\n");
 	timers_go();
 	if (WaitingToReelect)
 	{
@@ -258,23 +257,16 @@ static void check_timer_handler(struct uloop_timeout *timeout)
 		}
 		
 		CheckCount = 0;
-		if (ApcSpecSaved.IsApc == I_AM_APC)
-		{
-			printf("I am APC\n");
-		// Radius stuff
-		}
 	}
 
-	uloop_timeout_set(&check_timer, 1000); // timeout in 1 sec
+	uloop_timeout_set(&check_timer, 1000);
 	uloop_timeout_add(&check_timer);
 
 }
 
 static void handle_signal(int signo)
 {
-	system("/usr/opensync/bin/ovsh i APC_State \
-			br_addr:=0.0.0.0 dbr_addr:=0.0.0.0 \
-			enabled:=false mode:=NC");
+	system("/usr/opensync/bin/ovsh u APC_State dr_addr:=0.0.0.0 bdr_addr:=0.0.0.0 enabled:=false mode:=NC");
 }
 
 static void set_signals(void)
@@ -304,7 +296,6 @@ int main(int argc, char *const* argv)
 
 	/*Radius stuff*/
 
-	printf("Basic MAC\n");
 	memset(MyBasicMac, 0, 6);
 	if (get_mac_addr("br-wan", MyBasicMac) == 0) {
 		printf("APC: br-wan mac:%02X:%02X:%02X:%02X:%02X:%02X\n",
@@ -321,6 +312,7 @@ int main(int argc, char *const* argv)
 
 	/*get local ip of br-wan*/
 	MyIpAddr = 0;
+	printf("Getting br-wan IP\n");
 	while(1)
 	{
 		GetLocalIpv4Addr((unsigned char *)&MyIpAddr, "br-wan");

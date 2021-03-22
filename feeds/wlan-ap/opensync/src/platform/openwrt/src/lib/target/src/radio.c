@@ -734,7 +734,7 @@ static void callback_APC_State(ovsdb_update_monitor_t *mon,
 	     (conf->bdr_addr_changed)? "changed":"unchanged",
 	     (conf->mode_changed)? "changed":"unchanged");
 
-	/* APC changed: if radsecproxy enabled then restart wireless */
+	/* APC changed: if radproxy enabled then restart wireless */
 	if (radproxy_apc)
 		system("ubus call service event '{\"type\": \"config.change\", \"data\": { \"package\": \"wireless\" }}'");
 }

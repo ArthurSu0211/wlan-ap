@@ -16,5 +16,5 @@ start_service() {
 
 stop_service() {
     echo "Killing APC"
-    killall -s SIGKILL apc
+    killall -s SIGTERM apc
 }
