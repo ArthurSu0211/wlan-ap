@@ -1,0 +1,10 @@
+---
+profile: sercomm_sax1v1r
+target: ipq807x
+subtarget: ipq807x
+description: Build image for the Sercomm SAX1V1R
+feeds:
+  - name: ipq807x
+    path: ../../feeds/ipq807x
+
+
