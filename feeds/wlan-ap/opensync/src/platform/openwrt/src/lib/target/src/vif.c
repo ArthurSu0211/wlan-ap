@@ -547,7 +547,7 @@ out_none:
 
 /* Custom options table */
 #define SCHEMA_CUSTOM_OPT_SZ            20
-#define SCHEMA_CUSTOM_OPTS_MAX          12
+#define SCHEMA_CUSTOM_OPTS_MAX          13
 
 const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 {
