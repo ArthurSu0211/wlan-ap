@@ -26,6 +26,7 @@
 #include "captive.h"
 #include "rrm_config.h"
 #include "vlan.h"
+#include "radius_proxy.h"
 
 ovsdb_table_t table_Hotspot20_Config;
 ovsdb_table_t table_Hotspot20_OSU_Providers;
@@ -839,8 +840,11 @@ bool target_radio_init(const struct target_radio_ops *ops)
 	OVSDB_TABLE_INIT(Hotspot20_Icon_Config, _uuid);
 	OVSDB_TABLE_MONITOR(Hotspot20_Icon_Config, false);
 
-        OVSDB_TABLE_INIT(Wifi_RRM_Config, _uuid);
-        OVSDB_TABLE_MONITOR(Wifi_RRM_Config, false);
+	OVSDB_TABLE_INIT(Wifi_RRM_Config, _uuid);
+	OVSDB_TABLE_MONITOR(Wifi_RRM_Config, false);
+
+	OVSDB_TABLE_INIT(Radius_Proxy_Config, _uuid);
+	OVSDB_TABLE_MONITOR(Radius_Proxy_Config, false);
 
 	apc_init();
 
