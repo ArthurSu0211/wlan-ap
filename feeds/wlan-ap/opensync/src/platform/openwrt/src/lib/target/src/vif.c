@@ -130,6 +130,8 @@ enum {
 	WIF_ATTR_DVLAN_BRIDGE,
 	WIF_ATTR_MIN_HW_MODE,
 	WIF_ATTR_RADPROXY,
+	WIF_ATTR_PROXY_ARP,
+	WIF_ATTR_MCAST_TO_UCAST,
 	__WIF_ATTR_MAX,
 };
 
@@ -222,6 +224,8 @@ static const struct blobmsg_policy wifi_iface_policy[__WIF_ATTR_MAX] = {
 	[WIF_ATTR_DVLAN_BRIDGE] = { .name = "vlan_bridge", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_MIN_HW_MODE] = { .name = "min_hw_mode", BLOBMSG_TYPE_STRING },
 	[WIF_ATTR_RADPROXY] = { .name = "radproxy", BLOBMSG_TYPE_STRING },
+	[WIF_ATTR_PROXY_ARP] = { .name = "proxy_arp", BLOBMSG_TYPE_BOOL },
+	[WIF_ATTR_MCAST_TO_UCAST] = { .name = "multicast_to_unicast", BLOBMSG_TYPE_BOOL },
 };
 
 const struct uci_blob_param_list wifi_iface_param = {
@@ -319,7 +323,7 @@ extern unsigned int radproxy_apc;
 
 /* Custom options table */
 #define SCHEMA_CUSTOM_OPT_SZ            20
-#define SCHEMA_CUSTOM_OPTS_MAX          13
+#define SCHEMA_CUSTOM_OPTS_MAX          15
 
 const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 {
@@ -336,6 +340,8 @@ const char custom_options_table[SCHEMA_CUSTOM_OPTS_MAX][SCHEMA_CUSTOM_OPT_SZ] =
 	SCHEMA_CONSTS_RADIUS_NAS_IP,
 	SCHEMA_CONSTS_DYNAMIC_VLAN,
 	SCHEMA_CONSTS_RADPROXY,
+	SCHEMA_CONSTS_PROXY_ARP,
+	SCHEMA_CONSTS_MCAST_TO_UCAST,
 };
 
 static bool vif_config_custom_opt_get_proxy(
@@ -621,8 +627,19 @@ static void vif_config_custom_opt_set(struct blob_buf *b, struct blob_buf *del,
 				strncpy(value, "br-wan.", 20);
 				blobmsg_add_string(del, "vlan_bridge", value);
 			}
-		} else if (strcmp(opt, "radproxy") == 0)
+		} else if (strcmp(opt, "radproxy") == 0) {
 			blobmsg_add_string(b, "radproxy", value);
+		} else if (strcmp(opt, "proxy_arp") == 0) {
+			if (strcmp(value, "1") == 0)
+				blobmsg_add_bool(b, "proxy_arp", 1);
+			else if (strcmp(value, "0") == 0)
+				blobmsg_add_bool(del, "proxy_arp", 1);
+		} else if (strcmp(opt, "mcast_to_ucast") == 0) {
+			if (strcmp(value, "1") == 0)
+				blobmsg_add_bool(b, "multicast_to_unicast", 1);
+			else if (strcmp(value, "0") == 0)
+				blobmsg_add_bool(del, "multicast_to_unicast", 1);
+		}
 	}
 }
 
@@ -763,8 +780,33 @@ static void vif_state_custom_options_get(struct schema_Wifi_VIF_State *vstate,
 							custom_options_table[i],
 							buf);
 			}
-		}
 
+
+		} else if (strcmp(opt, "proxy_arp") == 0) {
+			if (tb[WIF_ATTR_PROXY_ARP]) {
+				if (blobmsg_get_bool(tb[WIF_ATTR_PROXY_ARP])) {
+					set_custom_option_state(vstate, &index,
+								custom_options_table[i],
+								"1");
+				} else {
+					set_custom_option_state(vstate, &index,
+								custom_options_table[i],
+								"0");
+				}
+			}
+		} else if (strcmp(opt, "mcast_to_ucast") == 0) {
+			if (tb[WIF_ATTR_MCAST_TO_UCAST]) {
+				if (blobmsg_get_bool(tb[WIF_ATTR_MCAST_TO_UCAST])) {
+					set_custom_option_state(vstate, &index,
+								custom_options_table[i],
+								"1");
+				} else {
+					set_custom_option_state(vstate, &index,
+								custom_options_table[i],
+								"0");
+				}
+			}
+		}
 	}
 }
 
