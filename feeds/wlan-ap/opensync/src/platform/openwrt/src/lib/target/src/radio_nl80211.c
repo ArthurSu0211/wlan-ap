@@ -436,7 +436,11 @@ static void nl80211_update_current_channel(struct nlattr **tb, char *name, int f
 
 	phy = avl_find_element(&phy_tree, name, phy, avl);
 	if (!phy)
+	{
+		LOGI("ARIF %s:%d: freq:%d name:%s", __func__, __LINE__, freq, name);
 		return;
+	}
+
 
 	phy->current_channel = ieee80211_frequency_to_channel(freq);
 }
@@ -465,15 +469,18 @@ static int nl80211_recv(struct nl_msg *msg, void *arg)
 
 	if (tb[NL80211_ATTR_WIPHY]) {
 		phy = nla_get_u32(tb[NL80211_ATTR_WIPHY]);
-		if (tb[NL80211_ATTR_WIPHY_NAME])
-			strncpy(phyname, nla_get_string(tb[NL80211_ATTR_WIPHY_NAME]), IFNAMSIZ);
-		else
-			snprintf(phyname, sizeof(phyname), "phy%d", phy);
+		snprintf(phyname, sizeof(phyname), "phy%d", phy);
+	}
+	else if (tb[NL80211_ATTR_WIPHY_NAME]) {
+		strncpy(phyname, nla_get_string(tb[NL80211_ATTR_WIPHY_NAME]), IFNAMSIZ);
+	}
+	else if (sscanf(ifname, "wlan%d", &phy)) {
+		snprintf(phyname, sizeof(phyname), "phy%d", phy);
 	}
 
 	if(tb[NL80211_ATTR_WIPHY_FREQ]) {
 		freq = nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]);
-		snprintf(phyname, sizeof(phyname), "phy%d", phy);
+		LOGI("ARIF %s:%d: freq:%d phyname:%s", __func__, __LINE__, freq, phyname);
 		nl80211_update_current_channel(tb, phyname, freq);
 	}
 

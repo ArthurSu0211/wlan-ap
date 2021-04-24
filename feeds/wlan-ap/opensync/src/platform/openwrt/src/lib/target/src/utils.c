@@ -593,9 +593,13 @@ int ieee80211_channel_to_frequency(int chan)
 int get_current_channel(char *name)
 {
 	struct wifi_phy *phy = phy_find(name);
+	LOGI("ARIF %s:%d: name:%s", __func__, __LINE__, name);
 
 	if(phy)
+	{
+		LOGI("ARIF %s:%d: channel:%d name:%s", __func__, __LINE__, phy->current_channel, name);
 		return phy->current_channel;
+	}
 
 	return 0;
 }
