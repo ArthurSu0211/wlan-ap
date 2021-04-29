@@ -131,11 +131,6 @@ if [ ! $SERIAL ]; then
 	SERIAL=$(cat /sys/class/net/eth0/address | tr -d :)
 fi
 
-# fallback check to get the id from mac address if flash does not contain this info.
-if [ ! $ID ]; then
-	ID=$(cat /sys/class/net/eth0/address)
-fi
-
 # fallback check to get the model if flash does not contain this info.
 if [ ! $MODEL ]; then
 	MODEL=$(cat /tmp/sysinfo/board_name)
