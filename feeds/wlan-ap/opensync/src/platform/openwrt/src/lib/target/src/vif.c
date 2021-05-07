@@ -1024,10 +1024,10 @@ void vif_section_del(char *section_name)
 	struct uci_package *wireless;
 	struct uci_element *e = NULL, *tmp = NULL;
 	int ret=0;
-
+	LOGI("====Inside %s: calling uci_load for %s====", __func__, section_name);
 	ret= uci_load(uci, "wireless", &wireless);
 	if (ret) {
-		LOGD("%s: uci_load() failed with rc %d", section_name, ret);
+		LOGD("%s: %s uci_load() failed with rc %d", section_name, __func__, ret);
 		return;
 	}
 	uci_foreach_element_safe(&wireless->sections, tmp, e) {
@@ -1043,6 +1043,7 @@ void vif_section_del(char *section_name)
 	uci_commit(uci, &wireless, false);
 	uci_unload(uci, wireless);
 	reload_config = 1;
+	LOGI("====Returning from %s====", __func__);
 
 }
 
@@ -1063,7 +1064,7 @@ static void vif_check_radius_proxy()
 	}
 
 	uci_ctx = uci_alloc_context();
-
+	LOGI("====Inside %s: calling uci_load ====", __func__);
 	rc = uci_load(uci_ctx, "wireless", &wireless);
 
 	if (rc)
@@ -1107,6 +1108,7 @@ static void vif_check_radius_proxy()
 free:
 	uci_unload(uci_ctx, wireless);
 	uci_free_context(uci_ctx);
+	LOGI("====Returning from %s====", __func__);
 	return;
 }
 
@@ -1339,9 +1341,10 @@ bool target_vif_config_del(const struct schema_Wifi_VIF_Config *vconf)
 	int ret=0;
 
 	vlan_del((char *)vconf->if_name);
+	LOGI("====Inside %s: calling uci_load ====", __func__);
 	ret= uci_load(uci, "wireless", &wireless);
 	if (ret) {
-		LOGD("%s: uci_load() failed with rc %d", vconf->if_name, ret);
+		LOGE("%s: %s uci_load() failed with rc %d", vconf->if_name, __func__, ret);
 		return false;
 	}
 	uci_foreach_element_safe(&wireless->sections, tmp, e) {
@@ -1358,6 +1361,7 @@ bool target_vif_config_del(const struct schema_Wifi_VIF_Config *vconf)
 	uci_commit(uci, &wireless, false);
 	uci_unload(uci, wireless);
 	reload_config = 1;
+	LOGI("====Returning from %s====", __func__);
 	return true;
 }
 
@@ -1549,7 +1553,7 @@ static int ap_vif_config_set(const struct schema_Wifi_Radio_Config *rconf,
 
 	blob_buf_init(&b, 0);
 	blob_buf_init(&del,0);
-
+	LOGI("====Inside %s:====", __func__);
 	blobmsg_add_string(&b, "ifname", vconf->if_name);
 	blobmsg_add_string(&b, "device", rconf->if_name);
 	blobmsg_add_string(&b, "mode", "ap");
@@ -1662,6 +1666,7 @@ static int ap_vif_config_set(const struct schema_Wifi_Radio_Config *rconf,
 		vif_check_radius_proxy();
 
 	reload_config = 1;
+	LOGI("====Done %s:====", __func__);
 	return 0;
 }
 

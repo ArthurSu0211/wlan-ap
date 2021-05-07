@@ -34,7 +34,7 @@ ovsdb_table_t table_Hotspot20_Icon_Config;
 
 ovsdb_table_t table_APC_Config;
 ovsdb_table_t table_APC_State;
-unsigned int radproxy_apc;
+unsigned int radproxy_apc = 0;
 
 static struct uci_package *wireless;
 struct uci_context *uci;
@@ -445,6 +445,7 @@ static void periodic_task(void *arg)
 {
 	static int counter = 0;
 	struct uci_element *e = NULL, *tmp = NULL;
+	int ret = 0;
 
 	if ((counter % 15) && !reload_config)
 		goto done;
@@ -468,9 +469,13 @@ static void periodic_task(void *arg)
 		system("reload_config");
 	}
 
-	LOGT("periodic: start state update ");
-
-	uci_load(uci, "wireless", &wireless);
+	LOGI("====periodic: start state update====");
+	LOGI("====Inside radio.c %s: calling uci_load ====", __func__);
+	ret = uci_load(uci, "wireless", &wireless);
+	if (ret) {
+		LOGE("%s: uci_load() failed with rc %d", __func__, ret);
+		return;
+	}
 	uci_foreach_element_safe(&wireless->sections, tmp, e) {
 		struct uci_section *s = uci_to_section(e);
 
@@ -485,7 +490,7 @@ static void periodic_task(void *arg)
 			vif_state_update(s, NULL);
 	}
 	uci_unload(uci, wireless);
-	LOGT("periodic: stop state update ");
+	LOGI("====periodic: stop state update====");
 
 done:
 	counter++;
@@ -691,17 +696,11 @@ const struct uci_blob_param_list apc_param = {
 
 void APC_config_update(struct schema_APC_Config *conf)
 {
-	struct uci_package *apc;
 	struct blob_buf apcb = { };
-	int rc = 0;
+	struct uci_context *apc_uci;
 
-	LOGD("APC: APC_config_update");
-
-	rc = uci_load(uci, "apc", &apc);
-	if (rc)
-	{
-		LOGD("%s: uci_load failed with rc %d", __func__, rc);
-	}
+	LOGI("====Inside APC: APC_config_update calling uci_load====");
+	apc_uci = uci_alloc_context();
 
 	blob_buf_init(&apcb, 0);
 
@@ -716,11 +715,12 @@ void APC_config_update(struct schema_APC_Config *conf)
 		}
 	}
 
-        blob_to_uci_section(uci, "apc", "apc", "apc",
+        blob_to_uci_section(apc_uci, "apc", "apc", "apc",
                             apcb.head, &apc_param, NULL);
 
-	uci_commit(uci, &apc, false);
-	uci_unload(uci, apc);
+	reload_config = 1;
+	uci_free_context(apc_uci);
+	LOGI("====Returning from %s====", __func__);
 }
 
 static void callback_APC_Config(ovsdb_update_monitor_t *mon,
@@ -745,6 +745,7 @@ static void callback_APC_State(ovsdb_update_monitor_t *mon,
 	/* APC changed: if radproxy enabled then restart wireless */
 	if (radproxy_apc) {
 		radproxy_apc = 0;
+		LOGI("====Inside %s: calling  ubus to reload wireless ====", __func__);
 		system("ubus call service event '{\"type\": \"config.change\", \"data\": { \"package\": \"wireless\" }}'");
 	}
 }
