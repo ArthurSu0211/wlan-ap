@@ -342,6 +342,7 @@ static int wifi_inet_conf_add(struct schema_Wifi_Inet_Config *iconf)
 	}
 
 	uci_commit_all(uci);
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 
 	return 0;
@@ -361,6 +362,7 @@ static void wifi_inet_conf_del(struct schema_Wifi_Inet_Config *iconf)
 
 	uci_section_del(uci, "network", "network", iconf->if_name, "interface");
 	uci_commit_all(uci);
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 }
 
@@ -391,6 +393,7 @@ static void callback_Wifi_Inet_Config(ovsdb_update_monitor_t *mon,
 static void periodic_task(void *arg)
 {
 	if (reload_config) {
+		LOGI("%s======Calling system reload_config======= %s", __FILE__, __func__);
 		uci_commit_all(uci);
 		system("reload_config");
 		reload_config = 0;

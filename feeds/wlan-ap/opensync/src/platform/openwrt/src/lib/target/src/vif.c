@@ -1044,6 +1044,7 @@ void vif_section_del(char *section_name)
 	uci_commit(sec_ctx, &wireless, false);
 	uci_unload(sec_ctx, wireless);
 	uci_free_context(sec_ctx);
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 }
 
@@ -1360,6 +1361,7 @@ bool target_vif_config_del(const struct schema_Wifi_VIF_Config *vconf)
 	uci_commit(vif_ctx, &wireless, false);
 	uci_unload(vif_ctx, wireless);
 	uci_free_context(vif_ctx);
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 	return true;
 }
@@ -1415,6 +1417,7 @@ void vif_hs20_osu_update(struct schema_Hotspot20_OSU_Providers *osuconf)
 
 	blob_to_uci_section(uci, "wireless", osuconf->osu_provider_name, "osu-provider",
 			osu.head, &wifi_hs20_osu_param, NULL);
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 }
 
@@ -1446,6 +1449,7 @@ void vif_hs20_icon_update(struct schema_Hotspot20_Icon_Config *iconconf)
 
 		blob_to_uci_section(uci, "wireless", iconconf->icon_config_name, "hs20-icon",
 				hs20.head, &wifi_hs20_icon_param, NULL);
+		LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 		reload_config = 1;
 	}
 }
@@ -1469,6 +1473,7 @@ void vif_hs20_update(struct schema_Hotspot20_Config *hs2conf)
 			hs20_vif_config(&b, hs2conf);
 			blob_to_uci_section(uci, "wireless", vconf.if_name, "wifi-iface",
 					b.head, &wifi_iface_param, NULL);
+			LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 			reload_config = 1;
 		}
 	}
@@ -1540,6 +1545,7 @@ static int mesh_vif_config_set(const struct schema_Wifi_Radio_Config *rconf,
 	blob_to_uci_section(uci, "network", vconf->if_name, "interface",
 			mesh.head, &wifi_mesh_param, NULL);
 
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 	return 0;
 }
@@ -1652,17 +1658,21 @@ static int ap_vif_config_set(const struct schema_Wifi_Radio_Config *rconf,
 	else
 		vlan_del((char *)vconf->if_name);
 
-	if (changed->captive_portal)
+	if (changed->captive_portal) {
+		LOGI("%s=====Calling vif_captive_portal_set ======= %s", __FILE__, __func__);
 		vif_captive_portal_set(vconf,(char*)vconf->if_name);
+	}
 
 	if(changed->captive_allowlist)
 	{
+		LOGI("%s======Calling vif_dhcp_opennds_allowlist_set ======= %s", __FILE__, __func__);
 		vif_dhcp_opennds_allowlist_set(vconf,(char*)vconf->if_name);
 	}
 
 	if (changed->custom_options)
 		vif_check_radius_proxy();
 
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 	return 0;
 }

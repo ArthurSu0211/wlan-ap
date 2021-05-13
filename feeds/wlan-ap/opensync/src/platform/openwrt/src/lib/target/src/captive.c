@@ -192,6 +192,7 @@ void vif_dhcp_opennds_allowlist_set(const struct schema_Wifi_VIF_Config *vconf, 
 	}
 	blobmsg_close_array(&dnsmas, e);
 	blob_to_uci_section(dns, "dhcp", "dnsmasq", "dnsmasq", dnsmas.head, &dnsm_param, NULL);
+	LOGI("%s======UCI commit dns======= %s", __FILE__, __func__);
 	uci_commit_all(dns);
 	return;
 }
@@ -494,6 +495,7 @@ void opennds_parameters(char *ifname)
 	}
 	blobmsg_close_array(&cap_blob, d);
 	blob_to_uci_section(cap_uci, "opennds", "opennds", "opennds", cap_blob.head, &opennds_param, NULL);
+	LOGI("%s======UCI commit cap_uci2======= %s", __FILE__, __func__);
 	uci_commit_all(cap_uci);
 	return;
 }
@@ -525,7 +527,7 @@ void opennds_section_del(char *section_name)
 	uci_commit(nds_ctx, &opennds, false);
 	uci_unload(nds_ctx, opennds);
 	uci_free_context(nds_ctx);
-	reload_config = 1;
+	LOGI("%s====== NOT Setting reload_config======= %s", __FILE__, __func__);
 }
 
 void vif_captive_portal_set(const struct schema_Wifi_VIF_Config *vconf, char *ifname)
@@ -604,6 +606,7 @@ void vif_captive_portal_set(const struct schema_Wifi_VIF_Config *vconf, char *if
 				blobmsg_close_array(&cap, d);
 			}
 			else {
+				LOGI("%s============= Deleting opennds_section_del %s", __FILE__, __func__);
 				opennds_section_del("opennds");
 				return;
 			}
@@ -667,6 +670,7 @@ void vif_captive_portal_set(const struct schema_Wifi_VIF_Config *vconf, char *if
 		}
 	}
 	blob_to_uci_section(cap_uci, "opennds", "opennds", "opennds", cap.head, &opennds_param, NULL);
+	LOGI("%s======UCI commit cap_uci======= %s", __FILE__, __func__);
 	uci_commit_all(cap_uci);
 	return;
 }

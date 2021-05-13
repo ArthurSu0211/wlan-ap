@@ -436,6 +436,7 @@ bool target_radio_config_set2(const struct schema_Wifi_Radio_Config *rconf,
 	blob_to_uci_section(uci, "wireless", rconf->if_name, "wifi-device",
 			    b.head, &wifi_device_param, del.head);
 
+	LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 	reload_config = 1;
 
 	return true;
@@ -462,14 +463,14 @@ static void periodic_task(void *arg)
 	}
 
 	if (reload_config) {
-		LOGT("periodic: reload config");
+		LOGI("======periodic: reload system config=======");
 		reload_config = 0;
 		uci_commit_all(uci);
 		sync();
 		system("reload_config");
 	}
 
-	LOGD("periodic: start state update ");
+	LOGI("====periodic: start state update====== ");
 	ret = uci_load(uci, "wireless", &wireless);
 	if (ret) {
 		LOGE("%s: uci_load() failed with rc %d", __func__, ret);
@@ -489,7 +490,7 @@ static void periodic_task(void *arg)
 			vif_state_update(s, NULL);
 	}
 	uci_unload(uci, wireless);
-	LOGD("periodic: stop state update ");
+	LOGI("=====periodic: stop state update======");
 
 done:
 	counter++;
@@ -526,6 +527,7 @@ bool target_radio_config_init2(void)
 	}
 	if (invalidVifFound) {
 		uci_commit(uci, &wireless, false);
+		LOGI("%s======Setting reload_config======= %s", __FILE__, __func__);
 		reload_config = 1;
 	}
 	uci_unload(uci, wireless);
@@ -711,7 +713,7 @@ void APC_config_update(struct schema_APC_Config *conf)
 
 	blob_to_uci_section(apc_uci, "apc", "apc", "apc",
 			apcb.head, &apc_param, NULL);
-
+	LOGI("%s======Uci commit apc======= %s", __FILE__, __func__);
 	uci_commit_all(apc_uci);
 	uci_free_context(apc_uci);
 }
@@ -740,6 +742,7 @@ static void callback_APC_State(ovsdb_update_monitor_t *mon,
 	/* APC changed: if radproxy enabled then restart wireless */
 	if (radproxy_apc) {
 		radproxy_apc = 0;
+		LOGI("==========APC_state: Calling wireless reload============");
 		system("ubus call service event '{\"type\": \"config.change\", \"data\": { \"package\": \"wireless\" }}'");
 	}
 }

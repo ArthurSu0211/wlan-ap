@@ -355,7 +355,7 @@ static bool radius_proxy_config_set(struct schema_Radius_Proxy_Config *conf )
 		blob_to_uci_section(uci, "radsecproxy", name, "realm",
 				uci_buf.head, &radius_proxy_realm_param, NULL);
 	}
-
+	LOGI("%s======Uci commit radsec proxy======= %s", __FILE__, __func__);
 	uci_commit_all(uci);
 	return true;
 }

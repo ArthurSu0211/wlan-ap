@@ -51,6 +51,7 @@ void rrm_config_vif(struct blob_buf *b, struct blob_buf *del, const char * freq_
 
 		if (conf.beacon_rate == 0) {
 			// Default to the lowest possible bit rate for each frequency band
+			 LOG(INFO, "=====%s Setting BEACON RATE =======", __func__);
 			if (!strcmp(freq_band, "2.4G")) {
 				blobmsg_add_u32(b, "bcn_rate", 10);
 			} else {
@@ -72,7 +73,7 @@ int rrm_get_backup_channel(const char * freq_band)
 	if (false == ovsdb_table_select_one(&table_Wifi_RRM_Config,
 			SCHEMA_COLUMN(Wifi_RRM_Config, freq_band), freq_band, &conf))
 	{
-		LOG(ERR, "Wifi_Radio_Config: No RRM for band %s", freq_band );
+		LOG(ERR, "=====%s Wifi_Radio_Config: No RRM for band %s=======", __func__, freq_band );
 		return 0;
 	}
 
@@ -91,7 +92,7 @@ static bool rrm_config_update( struct schema_Wifi_RRM_Config *conf, bool addNotD
 	if (false == ovsdb_table_select_one(&table_Wifi_Radio_Config,
 			SCHEMA_COLUMN(Wifi_Radio_Config, freq_band), conf->freq_band, &rconf))
 	{
-		LOG(WARN, "Wifi_RRM_Config: No radio for band %s", conf->freq_band );
+		LOG(INFO, "=====%s Wifi_RRM_Config: No radio for band %s=====", __func__, conf->freq_band );
 		return false;
 	}	
 
@@ -103,7 +104,7 @@ static bool rrm_config_update( struct schema_Wifi_RRM_Config *conf, bool addNotD
 		memset(&vconf, 0, sizeof(vconf));
 		if (ovsdb_table_select_one_where(&table_Wifi_VIF_Config, where, &vconf))
 		{
-			LOG(DEBUG, "RRM band %s updates vif %s", conf->freq_band, vconf.if_name);
+			LOG(INFO, "=======RRM band %s updates vif %s======", conf->freq_band, vconf.if_name);
 			target_vif_config_set2(&vconf, &rconf, NULL, &changed, 0);
 		}
 	}
@@ -122,7 +123,7 @@ static bool rrm_config_changed( struct schema_Wifi_RRM_Config *old,
 	}
 	return false;
 }
-
+#if 0
 static bool rrm_radio_config_update(struct schema_Wifi_RRM_Config *conf )
 {
 	struct schema_Wifi_Radio_Config_flags changed;
@@ -136,10 +137,12 @@ static bool rrm_radio_config_update(struct schema_Wifi_RRM_Config *conf )
 	}
 
 	memset(&changed, 0, sizeof(changed));
+	LOG(INFO, "=====%s Calling target_radio_config_set2 band =======%s", __func__, conf->freq_band );
 	target_radio_config_set2(&rconf, &changed);
 
 	return true;
 }
+#endif
 
 static bool rrm_config_set( struct schema_Wifi_RRM_Config *old,
 	struct schema_Wifi_RRM_Config *conf ) 
@@ -147,16 +150,18 @@ static bool rrm_config_set( struct schema_Wifi_RRM_Config *old,
 	if (rrm_config_changed(old, conf)) {
 		rrm_config_update(conf, true);
 	}
-
+/*
 	if(conf->backup_channel != old->backup_channel) {
-		rrm_radio_config_update(conf);
+		LOG(INFO, "=====%s Not Calling rrm_radio_config_update =======", __func__);
+		// rrm_radio_config_update(conf);
 	}
-
+*/
 	return true;
 }
 
 static bool rrm_config_delete( struct schema_Wifi_RRM_Config *old )
 {
+	LOG(INFO, "=====Inside %s=======", __func__);
 	return( rrm_config_update(old, false));
 }
 

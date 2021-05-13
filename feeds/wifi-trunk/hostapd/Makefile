@@ -40,6 +40,8 @@ EAPOL_TEST_PROVIDERS:=eapol-test eapol-test-openssl eapol-test-wolfssl
 SUPPLICANT_PROVIDERS:=
 HOSTAPD_PROVIDERS:=
 
+CONFIG_WPA_MSG_MIN_PRIORITY:=0
+
 LOCAL_TYPE=$(strip \
 		$(if $(findstring wpad,$(BUILD_VARIANT)),wpad, \
 		$(if $(findstring supplicant,$(BUILD_VARIANT)),supplicant, \

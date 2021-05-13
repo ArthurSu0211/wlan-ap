@@ -1,0 +1,156 @@
+--- a/src/wm2/src/wm2_radio.c
++++ b/src/wm2/src/wm2_radio.c
+@@ -101,7 +101,7 @@ wm2_delayed_cancel(void (*fn)(const char
+     struct wm2_delayed *i;
+     if (!(i = wm2_delayed_lookup(fn, ifname)))
+         return;
+-    LOGD("%s: cancelling scheduled work %s", ifname, i->workname);
++    LOGI("======%s: %s cancelling scheduled work %s=====", ifname, __func__, i->workname);
+     ds_dlist_remove(&delayed_list, i);
+     ev_timer_stop(EV_DEFAULT, &i->timer);
+     free(i);
+@@ -137,7 +137,7 @@ wm2_delayed(void (*fn)(const char *ifnam
+     ev_timer_init(&i->timer, wm2_delayed_cb, seconds, 0);
+     ev_timer_start(EV_DEFAULT, &i->timer);
+     ds_dlist_insert_tail(&delayed_list, i);
+-    LOGD("%s: scheduling delayed (%us) work %s", ifname, seconds, workname);
++    LOGI("=======%s: %s scheduling delayed (%us) work %s=======", ifname, __func__, seconds, workname);
+ }
+ 
+ #define wm2_delayed_recalc(fn, ifname) (wm2_delayed((fn), (ifname), WM2_RECALC_DELAY_SECONDS, #fn))
+@@ -816,7 +816,7 @@ wm2_vconf_recalc(const char *ifname, boo
+     bool want;
+     bool has;
+ 
+-    LOGD("%s: recalculating", ifname);
++    LOGI("====%s: Inside %s recalculating", ifname, __func__);
+ 
+     memset(&rconf, 0, sizeof(rconf));
+ 
+@@ -917,7 +917,7 @@ wm2_vconf_recalc(const char *ifname, boo
+     if (vconf.dynamic_beacon_exists && vconf.dynamic_beacon &&
+         vconf.ssid_broadcast_exists &&
+         !strcmp("enabled", vconf.ssid_broadcast)) {
+-            LOGW("%s: failed to configure, dynamic beacon can be set only for hidden networks",
++            LOGI("%s: failed to configure, dynamic beacon can be set only for hidden networks",
+                  vconf.if_name);
+     }
+ 
+@@ -926,16 +926,18 @@ wm2_vconf_recalc(const char *ifname, boo
+     LOGD("%s@%s: changed, configuring", ifname, rconf.if_name);
+ 
+     if (vchanged.parent)
+-        LOGD("%s: topology change: parent '%s' -> '%s'", ifname, vstate.parent, vconf.parent);
++        LOGI("%s: topology change: parent '%s' -> '%s'", ifname, vstate.parent, vconf.parent);
+ 
+     if (vchanged.ssid && strlen(vconf.ssid) > 0 && !strcmp(vconf.mode, "sta"))
+-        LOGD("%s: topology change: ssid '%s' -> '%s'", ifname, vstate.ssid, vconf.ssid);
++        LOGI("%s: topology change: ssid '%s' -> '%s'", ifname, vstate.ssid, vconf.ssid);
+ 
++    LOGI("%s: %s======= Calling target_vif_config_set2=======", ifname, __func__);
+     if (!target_vif_config_set2(&vconf, &rconf, cconfs, &vchanged, num_cconfs)) {
+-        LOGW("%s: failed to configure, will retry later", ifname);
++        LOGI("%s: %s========failed to configure, CAlling wm2_delayed_recalc with wm2_vconf_recalc retry later=======", ifname, __func__);
+         wm2_delayed_recalc(wm2_vconf_recalc, ifname);
+         return;
+     }
++    LOGI("%s: %s======= Calling wm2_delayed_recalc_cancel with wm2_vconf_recalc =======", ifname, __func__);
+ 
+     wm2_delayed_recalc_cancel(wm2_vconf_recalc, ifname);
+ }
+@@ -980,6 +982,7 @@ wm2_rconf_recalc_vifs(const struct schem
+         if (!(where = ovsdb_where_uuid("_uuid", rconf->vif_configs[i].uuid)))
+             continue;
+         if (ovsdb_table_select_one_where(&table_Wifi_VIF_Config, where, &vconf))
++    		LOGI("======%s: %s Calling wm2_vconf_recalc=======", vconf.if_name, __func__);
+             wm2_vconf_recalc(vconf.if_name, false);
+     }
+ }
+@@ -1203,7 +1206,7 @@ wm2_op_vconf(const struct schema_Wifi_VI
+                                                            SCHEMA_TABLE(Wifi_Radio_Config),
+                                                            where,
+                                                            SCHEMA_COLUMN(Wifi_Radio_Config, vif_configs)));
+-    LOGD("%s @ %s: updated vconf", vconf->if_name, phy);
++    LOGI("======%s @ %s %s: updated vconf Calling wm2_delayed_recalc with wm2_vconf_recalc=====", vconf->if_name, phy, __func__);
+     wm2_delayed_recalc(wm2_vconf_recalc, vconf->if_name);
+ }
+ 
+@@ -1212,14 +1215,14 @@ wm2_op_rconf(const struct schema_Wifi_Ra
+ {
+     struct schema_Wifi_Radio_Config tmp;
+     memcpy(&tmp, rconf, sizeof(tmp));
+-    LOGD("%s: updating rconf", rconf->if_name);
++    LOGI("======%s %s: updating rconf======", rconf->if_name, __func__);
+     REQUIRE(rconf->if_name, strlen(rconf->if_name) > 0);
+     REQUIRE(rconf->if_name, rconf->_partial_update);
+     OVERRIDE(rconf->if_name, tmp.vif_configs_present, false);
+     tmp.vif_configs_len = 0;
+     tmp.vif_configs_present = true;
+     REQUIRE(rconf->if_name, 1 == ovsdb_table_upsert_f(&table_Wifi_Radio_Config, &tmp, false, NULL));
+-    LOGD("%s: updated rconf", rconf->if_name);
++    LOGI("====%s %s: updated rconf Calling wm2_delayed_recalc with wm2_RCONF_recalc===", rconf->if_name, __func__);
+     wm2_delayed_recalc(wm2_rconf_recalc, rconf->if_name);
+ }
+ 
+@@ -1258,7 +1261,7 @@ wm2_op_vstate(const struct schema_Wifi_V
+ 
+     memcpy(&state, vstate, sizeof(state));
+ 
+-    LOGD("%s: updating vif state", state.if_name);
++    LOGI("=====%s: %s updating vif state=====", state.if_name, __func__);
+     REQUIRE(state.if_name, strlen(state.if_name) > 0);
+     REQUIRE(state.if_name, state._partial_update);
+     OVERRIDE(state.if_name, state.associated_clients_present, false);
+@@ -1351,7 +1354,7 @@ wm2_op_vstate(const struct schema_Wifi_V
+                                   SCHEMA_COLUMN(Wifi_VIF_State, if_name),
+                                   state.if_name);
+     }
+-    LOGD("%s: updated vif state", state.if_name);
++    LOGI("=======%s: updated vif state=====", state.if_name);
+ recalc:
+     /* Reconnect workaround is for CAES-771 */
+     if (wm2_sta_has_reconnected(&oldstate, &state))
+@@ -1359,6 +1362,7 @@ recalc:
+     wm2_sta_print_status(&oldstate, state.enabled_exists ? &state : NULL);
+     wm2_sta_handle_dfs_link_change(&rstate, &oldstate, &state);
+     wm2_radio_update_port_state(state.if_name);
++    LOGI("======%s: %s Calling wm2_delayed_recalc with wm2_vconf_recalc=======", state.if_name, __func__);
+     wm2_delayed_recalc(wm2_vconf_recalc, state.if_name);
+ }
+ 
+@@ -1370,7 +1374,7 @@ wm2_op_rstate(const struct schema_Wifi_R
+ 
+     memcpy(&state, rstate, sizeof(state));
+ 
+-    LOGD("%s: updating radio state", state.if_name);
++    LOGI("%s: %s=======updating radio state======", state.if_name, __func__);
+     REQUIRE(state.if_name, strlen(state.if_name) > 0);
+     REQUIRE(state.if_name, state._partial_update);
+     OVERRIDE(state.if_name, state.radio_config_present, false);
+@@ -1392,7 +1396,7 @@ wm2_op_rstate(const struct schema_Wifi_R
+     }
+ 
+     REQUIRE(state.if_name, 1 == ovsdb_table_upsert_f(&table_Wifi_Radio_State, &state, false, NULL));
+-    LOGD("%s: updated radio state", state.if_name);
++    LOGI("======%s: %s updated radio state", state.if_name, __func__);
+     wm2_delayed_recalc(wm2_rconf_recalc, state.if_name);
+ }
+ 
+@@ -1526,7 +1530,7 @@ callback_Wifi_VIF_Config(
+         ovsdb_cache_row_t               *row)
+ {
+     if (wm2_api2) {
+-        LOGD("%s: ovsdb updated", vconf->if_name);
++        LOGI("======%s: %s Calling wm2_vconf_recalc=======", vconf->if_name, __func__);
+         wm2_vconf_recalc(vconf->if_name, false);
+     } else {
+         callback_Wifi_VIF_Config_v1(mon, old_rec, vconf, row);
+@@ -1553,7 +1557,7 @@ wm2_radio_config_bump(void)
+     if ((buf = ovsdb_table_select_where(&table_Wifi_VIF_Config, NULL, &n))) {
+         for (n--; n >= 0; n--) {
+             vconf = buf + (n * sizeof(*vconf));
+-            LOGI("%s: bumping", vconf->if_name);
++            LOGI("====%s %s: Calling wm2_vconf_recalc=====", vconf->if_name, __func__);
+             wm2_vconf_recalc(vconf->if_name, true);
+         }
+         free(buf);
