@@ -104,10 +104,10 @@ void apc_send_hello(struct apc_iface * ifa, int kind )
 	unsigned int length, report = 0;
 	struct apc_spec ApcSpec;
 	char dst_ip[16];
-	
+
 	if (WaitingToReelect )
 		return;
-	
+
 	memcpy(ps.basmac, MyBasicMac, 6 );
 	ps.dummy1 = htons(0xa2a2 );
 	ps.grpid = htonl(ApcGrpId );
@@ -252,7 +252,6 @@ void apc_receive_hello(unsigned char *pkt, struct apc_iface *ifa,
 	neighbors = ps->neighbors;
 	neigh_count = (plen - 24) / sizeof(u32);
 	printf("HELLO packet received from nbr %x on %s (%u) %p n_c=%u prio=%u\n", rcv_rid, ifa->ifname, ifa->state, n, neigh_count, rcv_priority );
-	
 	if (rcv_helloint != ifa->helloint)
 	DROP("hello interval mismatch", rcv_helloint );
 	

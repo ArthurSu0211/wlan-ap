@@ -129,6 +129,7 @@ void apc_iface_sm(struct apc_iface * ifa, int event)
 	case ISM_NEICH:
 		if (ifa->state >= APC_IS_DROTHER)
 			apc_dr_election(ifa);
+
 		break;
 
 	case ISM_LOOP:
@@ -168,7 +169,7 @@ void apc_iface_new( void )
 	ifa->priority = 0x11;
 	ifa->drip = MyIpAddr;
 	ifa->helloint = 4;
-	ifa->deadint = 16;
+	ifa->deadint = 12;
 	ifa->waitint = 16;
 	
 	ifa->type = APC_IT_BCAST;

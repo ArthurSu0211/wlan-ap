@@ -154,7 +154,7 @@ int receive_from_socket(void *data, ssize_t n)
 	{
 		ipaddr = ntohl(*((unsigned int *)&(cdata[12])));
 		neigh = find_neigh_by_ip(apc_ifa, ipaddr);
-		
+
 		printf("received from IAP (%d) (%x) %x %x %x %x %x %x %x %x %x %x\n",
 			n, ipaddr, cdata[0], cdata[1], cdata[2], cdata[3],
 			cdata[4], cdata[5], cdata[6], cdata[7], cdata[8],
