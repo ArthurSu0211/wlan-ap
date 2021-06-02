@@ -706,7 +706,7 @@ void APC_config_update(struct schema_APC_Config *conf)
 	if (conf && conf->enabled == true) {
 		blobmsg_add_bool(&apcb, "enabled", 1);
 		system("/etc/init.d/apc start");
-	} else {
+	} else {LOGI("APC_config_update");
 		blobmsg_add_bool(&apcb, "enabled", 0);
 		system("/etc/init.d/apc stop");
 	}
@@ -814,13 +814,38 @@ static int conn_since = 0;
 
 static void apc_enable(bool flag) {
 
-	SCHEMA_SET_INT(apc_conf.enabled, flag);
-	if (!ovsdb_table_update(&table_APC_Config, &apc_conf)) {
-		LOG(ERR, "%s:APC_Config: failed to update", __func__);
-		return;
-	}
+	struct schema_APC_State apc_state;
+	json_t *where;
+	
 	LOGI("APC %s: %s APC", __func__, flag?"enable":"disable");
+	if (flag == false) {
+		where = ovsdb_table_where(&table_APC_State, &apc_state);
+		if (false == ovsdb_table_select_one_where(&table_APC_State,
+						  where, &apc_state)) {
+			LOG(ERR, "%s: APC_State read failed", __func__);
+			apc_state.enabled = true;
+		}
 
+		if (apc_state.enabled == true) {
+			SCHEMA_SET_INT(apc_conf.enabled, flag);
+			if (!ovsdb_table_update(&table_APC_Config, &apc_conf)) {
+				LOG(ERR, "%s:APC_Config: failed to update", __func__);
+				return;
+			}
+			SCHEMA_SET_STR(apc_state.mode, "NC");
+			SCHEMA_SET_STR(apc_state.dr_addr, "0.0.0.0");
+			SCHEMA_SET_STR(apc_state.bdr_addr, "0.0.0.0");
+			SCHEMA_SET_INT(apc_state.enabled, false);
+			if (!ovsdb_table_update(&table_APC_State, &apc_state))
+				LOG(ERR, "APC_state: failed to update");
+		}
+	} else {
+		SCHEMA_SET_INT(apc_conf.enabled, flag);
+		if (!ovsdb_table_update(&table_APC_Config, &apc_conf)) {
+			LOG(ERR, "%s:APC_Config: failed to update", __func__);
+			return;
+		}
+	}
 }
 
 static void
@@ -847,6 +872,7 @@ apc_cld_mon_cb(struct schema_Manager *mgr)
 		LOGI("The return value: %d\n", WEXITSTATUS(ret));
 		link = WEXITSTATUS(ret);
 		if (link == 0) {
+			LOGI("APC link disable APC");
 			apc_enable(false);
 			return;
 		}
@@ -854,6 +880,7 @@ apc_cld_mon_cb(struct schema_Manager *mgr)
 
 	/*if cloud conn is false then disable apc*/
 	if (mgr->is_connected == false) {
+			LOGI("APC isconn disable APC");
 			apc_enable(false);
 	}
 	else {
@@ -887,6 +914,7 @@ static void callback_Manager(ovsdb_update_monitor_t *mon,
 		break;
 
 	case OVSDB_UPDATE_DEL:
+		LOGI("APC ovsdel disable APC");
 		apc_enable(false);
 		break;
 
